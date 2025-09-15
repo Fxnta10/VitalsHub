@@ -20,17 +20,21 @@ const doctorSchema = new mongoose.Schema({
   },
   shift: {
     start: {
-      type: String, // e.g., "08:00"
+      type: Number, // 24 hour format
       required: true,
     },
     end: {
-      type: String, // e.g., "17:00"
+      type: Number, // 24 hour format
       required: true,
     },
   },
   isActive: {
     type: Boolean,
     default: true,
+  },
+  slots: {
+    type: Number, // [9 , 10 , 11 , 12 ,13 ] 9 am slot book aithe remove 9
+    required: true,
   },
   appointments: [
     {
