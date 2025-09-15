@@ -1,56 +1,46 @@
-import jwt from "jsonwebtoken"
-
-// JWT Secret (should match the one in loginRouter)
+import express from "express";
+import jwt from "jsonwebtoken";
+import cookieParser from "cookie-parser";
+import Hospital from "../models/hospitalSchema.js";
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-here";
 
 // Middleware to verify JWT token and extract hospital information
-export const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
-
-  if (!token) {
-    return res.status(401).json({
-      success: false,
-      message: "Access token required"
-    });
-  }
-
-  jwt.verify(token, JWT_SECRET, (err, decoded) => {
-    if (err) {
-      return res.status(403).json({
+export const authenticateToken = async (req, res, next) => {
+  try {
+    const token = req.cookies.jwt;
+    if (!token) {
+      return res.status(400).json({
         success: false,
-        message: "Invalid or expired token"
+        message: "Unauthorized no token provided ",
       });
     }
 
-    // Add hospital information to request object
-    req.hospital = {
-      id: decoded.id,           // MongoDB ObjectId
-      hospitalId: decoded.hospitalId,  // Custom hospital ID
-      type: decoded.type
-    };
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (!decoded) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid token",
+      });
+    }
 
+    const hospital = await Hospital.findById(decoded.userId).select(
+      "-password"
+    );
+
+    if (!hospital) {
+      return res.status(400).json({
+        success: false,
+        message: "Not valid token",
+      });
+    }
+
+    req.hospital = hospital;
     next();
-  });
-};
-
-// Optional middleware - continues even if no token provided
-export const optionalAuth = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (token) {
-    jwt.verify(token, JWT_SECRET, (err, decoded) => {
-      if (!err) {
-        req.hospital = {
-          id: decoded.id,
-          hospitalId: decoded.hospitalId,
-          type: decoded.type
-        };
-      }
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server error ",
     });
   }
-
-  next();
 };
-
