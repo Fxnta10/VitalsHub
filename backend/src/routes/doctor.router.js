@@ -1,11 +1,13 @@
-const express = require("express");
-const router = express.Router();
-const axios = require("axios");
-const mongoose = require("mongoose");
+import express from "express";
+import axios from "axios";
+import mongoose from "mongoose";
 
-const Appointment = require("../models/appointmentSchema");
-const Doctor = require("../models/doctorSchema");
-const { authenticateToken } = require("../middleware/adminAuth");
+import Appointment from "../models/appointmentSchema.js";
+import Doctor from "../models/doctorSchema.js";
+import { authenticateToken } from "../middleware/adminAuth.js";
+
+const router = express.Router();
+
 
 router.get("/all", authenticateToken, async (req, res) => {
   // Get hospitalId from authenticated token
@@ -163,4 +165,4 @@ router.delete("/delete/:id", async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router

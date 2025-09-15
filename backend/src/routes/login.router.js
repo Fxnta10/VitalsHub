@@ -1,15 +1,18 @@
-const express = require("express");
+import express from "express";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import axios from "axios";
+
 const router = express.Router();
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const axios = require("axios");
+
 const saltRounds = 10;
 
 // JWT Secret (in production, use environment variable)
 const JWT_SECRET = process.env.JWT_SECRET || "blahblahblahblah";
 
-const Hospital = require("../models/hospitalSchema");
-const { authenticateToken } = require("../middleware/adminAuth");
+import Hospital from "../models/hospitalSchema.js";
+import { authenticateToken } from "../middleware/adminAuth.js";
+
 
 // Generate JWT token
 const generateToken = (hospitalId, hospitalObjectId) => {
@@ -157,4 +160,4 @@ router.get("/me", authenticateToken, async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

@@ -1,10 +1,10 @@
-const jwt = require("jsonwebtoken");
+import jwt from "jsonwebtoken"
 
 // JWT Secret (should match the one in loginRouter)
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-here";
 
 // Middleware to verify JWT token and extract hospital information
-const authenticateToken = (req, res, next) => {
+export const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
@@ -35,7 +35,7 @@ const authenticateToken = (req, res, next) => {
 };
 
 // Optional middleware - continues even if no token provided
-const optionalAuth = (req, res, next) => {
+export const optionalAuth = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -54,7 +54,3 @@ const optionalAuth = (req, res, next) => {
   next();
 };
 
-module.exports = {
-  authenticateToken,
-  optionalAuth
-};

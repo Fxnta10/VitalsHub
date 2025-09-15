@@ -9,10 +9,11 @@ export const useAuthStore = create((set,get)=>({
   isLoggingIn: false,
   isCheckingAuth: true,
   isUpdatingProfile:false,
+  isAddingDoc:false,
 
   checkAuth: async()=>{
     try {
-        const res = await axiosInstance.get("/user/check")
+        const res = await axiosInstance.get("/user/check", { withCredentials: true })
         console.log("Login response:", res.data);
         set({authUser:res.data});
         
@@ -84,5 +85,21 @@ export const useAuthStore = create((set,get)=>({
       console.log("Error in logout",error.message);
       toast.error(error.response.data.message);
     }
+  },
+  addDocs:async(data)=>{
+    set({isAddingDoc:true})
+    try {
+      const res = await axiosInstance.post("/user/upload",data);
+      toast.success("Document Added Successfully");
+      return ({success:true})
+    } catch (error) {
+      console.log("Error in addDocs",error.message);
+      toast.error(error.response.data.message);
+      
+    }
+    finally{
+      set({isAddingDoc:false})
+    }
   }
+
 }))

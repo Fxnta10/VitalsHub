@@ -12,12 +12,12 @@ router.post("/upload", upload.single("file"), async (req, res) => {
     const fileData = req.file.buffer;
     const contentType = req.file.mimetype;
 
-    await pdfDetails.create({
+    const doc=await pdfDetails.create({
       title,
       pdf: { data: fileData, contentType }
     });
 
-    res.send("File uploaded successfully to MongoDB");
+    res.status(200).json({doc});
   } catch (error) {
     console.error(error.message);
     res.status(500).send("Error uploading file");

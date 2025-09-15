@@ -9,6 +9,7 @@ import {Toaster} from "react-hot-toast"
 import MyProfile from './pages/MyProfile'
 import Navbar from './components/Navbar'
 import { useAuthStore } from './stores/useAuthStore'
+import AddDocs from './pages/AddDocs'
 function App() {
   const{authUser,checkAuth,isCheckingAuth} = useAuthStore()
   useEffect(() => {
@@ -20,12 +21,13 @@ function App() {
   }
   return (
    <div>
-    <Navbar/>
+    {authUser&&<Navbar/>}
     <Routes>
       <Route path="/" element={<HomePage/>} />
       <Route path="/signup" element={<SignupPage/>}/>
       <Route path="/login" element={<LoginPage/>} />
       <Route path="/myprofile" element={<MyProfile/>} />
+      <Route path="/addDocs" element={<AddDocs/>} />
       <Route/>
     </Routes>
     <Toaster/>

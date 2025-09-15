@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 
 
 
@@ -8,6 +9,8 @@ export default function HomePage() {
     <div>
       
       <p>Home Page</p>
+
+      <Link to ="/addDocs" >Add Documents</Link>
       
     </div>
   )
