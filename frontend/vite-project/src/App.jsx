@@ -35,6 +35,7 @@ function App() {
   }
 
   return (
+
     <div>
       {authUser && !window.location.pathname.startsWith("/admin") && <Navbar />}
       <Routes>
@@ -58,6 +59,20 @@ function App() {
       <Toaster />
     </div>
   );
+   <div>
+    {authUser&&<Navbar/>}
+    <Routes>
+      <Route path="/" element={authUser?<HomePage/>:<LoginPage/>} />
+      <Route path="/signup" element={<SignupPage/>}/>
+      <Route path="/login" element={<LoginPage/>} />
+      <Route path="/myprofile" element={<MyProfile/>} />
+      <Route path="/addDocs" element={<AddDocs/>} />
+      <Route/>
+    </Routes>
+    <Toaster/>
+   </div>
+  )
+
 }
 
 export default App;
