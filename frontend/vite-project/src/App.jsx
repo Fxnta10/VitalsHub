@@ -17,9 +17,11 @@ import AdminEditDoctor from "./pages/admin/AdminEditDoctor";
 import AdminAddDoctorPage from "./pages/admin/AdminAddDoctorPage";
 import RagChatbot from "./pages/RagChatbot";
 import MedicalRecords from "./pages/MedicalRecords";
-
+import AdminNavbar from "./components/AdminNavbar";
 function App() {
   const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
+
+  
 
   useEffect(() => {
     // Only check auth for non-admin routes
@@ -49,6 +51,7 @@ function App() {
         <Route path="/medical-records" element={<MedicalRecords />} />
         <Route path="/chatbot" element={<RagChatbot />} />
 
+          
         <Route path="/admin/*">
           <Route index element={<AdminLoginPage />} />
           <Route path="login" element={<AdminLoginPage />} />

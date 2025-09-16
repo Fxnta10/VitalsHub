@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useAuthStore } from "../../stores/adminAuthStore";
 import { useNavigate } from "react-router-dom";
 import { Trash2, Edit, Plus, Eye, UserCircle } from "lucide-react";
-
+import AdminNavbar from "../../components/AdminNavbar";
+import Navbar from "../../components/Navbar";
 export default function AdminAllDoctorsPage() {
   const {
     authUser,
@@ -52,190 +53,257 @@ export default function AdminAllDoctorsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">All Doctors</h1>
-          <p className="text-gray-600 mt-2">
-            Hospital: {authUser?.hospitalId || "Unknown"}
-          </p>
-        </div>
-        <button
-          onClick={handleAddNewDoctor}
-          className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-        >
-          <Plus className="w-5 h-5 mr-2" />
-          Add New Doctor
-        </button>
-      </div>
+    <div>
 
-      {doctors.length === 0 ? (
-        <div className="text-center py-12">
-          <UserCircle className="w-24 h-24 mx-auto text-gray-300 mb-4" />
-          <h3 className="text-xl font-medium text-gray-900 mb-2">
-            No doctors found
-          </h3>
-          <p className="text-gray-500 mb-6">
-            Get started by adding your first doctor.
-          </p>
+      <AdminNavbar/>
+    <div
+    style={{ background: "#f8fafc", minHeight: "100vh", padding: "32px 0" }}
+    
+    >
+      <div className="container" style={{ maxWidth: "1200px" }}>
+        {/* Header Section */}
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <div>
+            <h2 className="fw-bold mb-2" style={{ color: "#1e293b" }}>
+              All Doctors
+            </h2>
+            <p className="text-secondary" style={{ fontSize: "1.1rem" }}>
+              Hospital: {authUser?.hospitalId || "Unknown"}
+            </p>
+          </div>
           <button
             onClick={handleAddNewDoctor}
-            className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+            className="btn btn-outline-primary d-flex align-items-center"
+            style={{
+              padding: "10px 20px",
+              borderRadius: "8px",
+              transition: "all 0.2s ease",
+            }}
           >
-            <Plus className="w-5 h-5 mr-2" />
-            Add Doctor
+            <Plus className="me-2" size={18} />
+            Add New Doctor
           </button>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {doctors.map((doctor) => (
-            <div
-              key={doctor._id}
-              className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"
+
+        {/* Empty State */}
+        {doctors.length === 0 ? (
+          <div
+            className="text-center bg-white rounded-3 p-5"
+            style={{
+              border: "1px solid #e2e8f0",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+            }}
+          >
+            <UserCircle size={64} className="text-secondary mb-3 opacity-75" />
+            <h3 className="fw-bold mb-2" style={{ color: "#1e293b" }}>
+              No doctors found
+            </h3>
+            <p className="text-secondary mb-4">
+              Get started by adding your first doctor.
+            </p>
+            <button
+              onClick={handleAddNewDoctor}
+              className="btn btn-outline-primary d-flex align-items-center mx-auto"
+              style={{ padding: "10px 24px", borderRadius: "8px" }}
             >
-              <div className="flex items-center mb-4">
-                <UserCircle className="w-12 h-12 text-gray-400 mr-3" />
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    {doctor.name}
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    {doctor.specialisation}
-                  </p>
+              <Plus className="me-2" size={18} />
+              Add Doctor
+            </button>
+          </div>
+        ) : (
+          /* Doctor Cards Grid */
+          <div className="row g-4">
+            {doctors.map((doctor) => (
+              <div key={doctor._id} className="col-md-6 col-lg-4">
+                <div
+                  className="bg-white rounded-3 p-4 h-100"
+                  style={{
+                    border: "1px solid #e2e8f0",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                    transition:
+                      "transform 0.2s ease, box-shadow 0.2s ease",
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                    e.currentTarget.style.boxShadow =
+                      "0 4px 6px rgba(0,0,0,0.05)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow =
+                      "0 1px 3px rgba(0,0,0,0.05)";
+                  }}
+                >
+                  <div className="d-flex align-items-center mb-3">
+                    <UserCircle
+                      size={48}
+                      className="text-secondary me-3 opacity-75"
+                    />
+                    <div>
+                      <h3
+                        className="fw-bold mb-1"
+                        style={{ color: "#1e293b", fontSize: "1.1rem" }}
+                      >
+                        {doctor.name}
+                      </h3>
+                      <p
+                        className="text-secondary mb-0"
+                        style={{ fontSize: "0.95rem" }}
+                      >
+                        {doctor.specialisation}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mb-3">
+                    <p
+                      className="mb-2 text-secondary"
+                      style={{ fontSize: "0.95rem" }}
+                    >
+                      <strong className="text-dark">Email:</strong> {doctor.email}
+                    </p>
+                    <p
+                      className="mb-2 text-secondary"
+                      style={{ fontSize: "0.95rem" }}
+                    >
+                      <strong className="text-dark">Shift:</strong> {doctor.shift?.start} -{" "}
+                      {doctor.shift?.end}
+                    </p>
+                    <p className="mb-2" style={{ fontSize: "0.95rem" }}>
+                      <strong className="text-dark">Status:</strong>{" "}
+                      <span
+                        className={`badge rounded-pill ${
+                          doctor.isActive
+                            ? "bg-success-subtle text-success"
+                            : "bg-danger-subtle text-danger"
+                        }`}
+                      >
+                        {doctor.isActive ? "Active" : "Inactive"}
+                      </span>
+                    </p>
+                  </div>
+
+                  <div className="d-flex gap-2">
+                    <button
+                      onClick={() => handleViewDetails(doctor)}
+                      className="btn btn-outline-secondary flex-grow-1 d-flex align-items-center justify-content-center"
+                      style={{ padding: "8px", borderRadius: "6px" }}
+                    >
+                      <Eye size={16} className="me-2" />
+                      View
+                    </button>
+                    <button
+                      onClick={() => handleEditDoctor(doctor._id)}
+                      className="btn btn-outline-primary flex-grow-1 d-flex align-items-center justify-content-center"
+                      style={{ padding: "8px", borderRadius: "6px" }}
+                    >
+                      <Edit size={16} className="me-2" />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteDoctor(doctor._id)}
+                      disabled={isUpdating}
+                      className="btn btn-outline-danger flex-grow-1 d-flex align-items-center justify-content-center"
+                      style={{ padding: "8px", borderRadius: "6px" }}
+                    >
+                      <Trash2 size={16} className="me-2" />
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </div>
+            ))}
+          </div>
+        )}
 
-              <div className="space-y-2 mb-4">
-                <p className="text-sm">
-                  <span className="font-medium">Email:</span> {doctor.email}
-                </p>
-                <p className="text-sm">
-                  <span className="font-medium">Shift:</span>{" "}
-                  {doctor.shift?.start} - {doctor.shift?.end}
-                </p>
-                <p className="text-sm">
-                  <span className="font-medium">Status:</span>{" "}
-                  <span
-                    className={`inline-flex px-2 py-1 rounded-full text-xs ${
-                      doctor.isActive
-                        ? "bg-green-100 text-green-800"
-                        : "bg-red-100 text-red-800"
-                    }`}
-                  >
-                    {doctor.isActive ? "Active" : "Inactive"}
-                  </span>
-                </p>
-              </div>
-
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => handleViewDetails(doctor)}
-                  className="flex-1 flex items-center justify-center px-3 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
-                >
-                  <Eye className="w-4 h-4 mr-1" />
-                  View
-                </button>
-                <button
-                  onClick={() => handleEditDoctor(doctor._id)}
-                  className="flex-1 flex items-center justify-center px-3 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
-                >
-                  <Edit className="w-4 h-4 mr-1" />
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDeleteDoctor(doctor._id)}
-                  disabled={isUpdating}
-                  className="flex-1 flex items-center justify-center px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors disabled:opacity-50"
-                >
-                  <Trash2 className="w-4 h-4 mr-1" />
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Doctor Details Modal */}
-      {showDetails && selectedDoctor && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <div className="flex justify-between items-start mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">
-                Doctor Details
-              </h2>
-              <button
-                onClick={() => setShowDetails(false)}
-                className="text-gray-400 hover:text-gray-600"
+        {/* Modal Updates */}
+        {showDetails && selectedDoctor && <div className="modal-backdrop show"></div>}
+        {showDetails && selectedDoctor && (
+          <div className="modal d-block" tabIndex="-1">
+            <div className="modal-dialog modal-dialog-centered">
+              <div
+                className="modal-content border-0"
+                style={{
+                  boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
+                  borderRadius: "12px",
+                }}
               >
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center">
-                <UserCircle className="w-16 h-16 text-gray-400 mr-4" />
-                <div>
-                  <h3 className="text-lg font-medium">{selectedDoctor.name}</h3>
-                  <p className="text-gray-600">
-                    {selectedDoctor.specialisation}
-                  </p>
+                <div className="modal-header border-bottom-0 pb-0">
+                  <h5 className="modal-title fw-bold" style={{ color: "#1e293b" }}>
+                    Doctor Details
+                  </h5>
+                  <button
+                    type="button"
+                    className="btn-close"
+                    onClick={() => setShowDetails(false)}
+                  ></button>
                 </div>
-              </div>
+                <div className="modal-body">
+                  <div className="d-flex align-items-center mb-4">
+                    <UserCircle size={64} className="text-secondary me-3" />
+                    <div>
+                      <h3
+                        className="fw-bold mb-1"
+                        style={{ color: "#1e293b" }}
+                      >
+                        {selectedDoctor.name}
+                      </h3>
+                      <p className="text-secondary mb-0">
+                        {selectedDoctor.specialisation}
+                      </p>
+                    </div>
+                  </div>
 
-              <div className="border-t pt-4 space-y-2">
-                <p>
-                  <span className="font-medium">Email:</span>{" "}
-                  {selectedDoctor.email}
-                </p>
-                <p>
-                  <span className="font-medium">Hospital ID:</span>{" "}
-                  {selectedDoctor.hospitalId}
-                </p>
-                <p>
-                  <span className="font-medium">Shift:</span>{" "}
-                  {selectedDoctor.shift?.start} - {selectedDoctor.shift?.end}
-                </p>
-                <p>
-                  <span className="font-medium">Status:</span>{" "}
-                  {selectedDoctor.isActive ? "Active" : "Inactive"}
-                </p>
-                <p>
-                  <span className="font-medium">Appointments:</span>{" "}
-                  {selectedDoctor.appointments?.length || 0}
-                </p>
-              </div>
-
-              <div className="flex space-x-2 pt-4">
-                <button
-                  onClick={() => handleEditDoctor(selectedDoctor._id)}
-                  className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-                >
-                  Edit Doctor
-                </button>
-                <button
-                  onClick={() => setShowDetails(false)}
-                  className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
-                >
-                  Close
-                </button>
+                  <div className="border-top pt-3">
+                    <p className="mb-2">
+                      <strong>Email:</strong> {selectedDoctor.email}
+                    </p>
+                    <p className="mb-2">
+                      <strong>Hospital ID:</strong> {selectedDoctor.hospitalId}
+                    </p>
+                    <p className="mb-2">
+                      <strong>Shift:</strong> {selectedDoctor.shift?.start} -{" "}
+                      {selectedDoctor.shift?.end}
+                    </p>
+                    <p className="mb-2">
+                      <strong>Status:</strong>{" "}
+                      <span
+                        className={`badge ${
+                          selectedDoctor.isActive ? "bg-success" : "bg-danger"
+                        }`}
+                      >
+                        {selectedDoctor.isActive ? "Active" : "Inactive"}
+                      </span>
+                    </p>
+                    <p className="mb-2">
+                      <strong>Appointments:</strong>{" "}
+                      {selectedDoctor.appointments?.length || 0}
+                    </p>
+                  </div>
+                </div>
+                <div className="modal-footer border-top-0">
+                  <button
+                    onClick={() => handleEditDoctor(selectedDoctor._id)}
+                    className="btn btn-outline-primary flex-grow-1"
+                    style={{ borderRadius: "6px" }}
+                  >
+                    Edit Doctor
+                  </button>
+                  <button
+                    onClick={() => setShowDetails(false)}
+                    className="btn btn-outline-secondary flex-grow-1"
+                    style={{ borderRadius: "6px" }}
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+      </div>
     </div>
   );
 }

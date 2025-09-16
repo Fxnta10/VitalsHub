@@ -4,6 +4,7 @@ import { useAuthStore } from "../../stores/adminAuthStore";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState } from "react";
 import toast from "react-hot-toast";
+import AdminNavbar from "../../components/AdminNavbar";
 
 export default function AdminEditDoctor() {
   const { getDoctor, updateDoctor } = useAuthStore();
@@ -104,128 +105,156 @@ export default function AdminEditDoctor() {
     }
   };
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full mx-auto space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Edit Doctor
-          </h2>
-        </div>
+    <div>
+      <AdminNavbar />
+    <div style={{ background: "#f6f8fb", minHeight: "100vh", padding: "32px 0" }}>
+      <div className="container" style={{ maxWidth: "800px" }}>
+        <h2 className="fw-bold mb-2" style={{ color: "#2d3748" }}>
+          Edit Doctor
+        </h2>
+        <p className="text-secondary mb-4" style={{ fontSize: "1.1rem" }}>
+          Update doctor's information in the system
+        </p>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <div>
+        <div className="bg-white rounded-3 shadow-sm p-4" style={{ border: "1px solid #e2e8f0" }}>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Name Field */}
+            <div className="mb-4">
+              <label htmlFor="name" className="fw-bold mb-2" style={{ color: "#2d3748" }}>
+                Full Name *
+              </label>
               <input
-                placeholder="Name"
+                id="name"
                 value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 type="text"
+                placeholder="Dr. John Doe"
+                className="form-control"
+                style={{ padding: "12px", borderRadius: "8px" }}
                 required
-                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
               />
             </div>
 
-            <div>
+            {/* Email Field */}
+            <div className="mb-4">
+              <label htmlFor="email" className="fw-bold mb-2" style={{ color: "#2d3748" }}>
+                Email Address *
+              </label>
               <input
-                placeholder="Email"
+                id="email"
                 value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 type="email"
+                placeholder="doctor@hospital.com"
+                className="form-control"
+                style={{ padding: "12px", borderRadius: "8px" }}
                 required
-                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
               />
             </div>
 
-            <div>
+            {/* Specialisation Field */}
+            <div className="mb-4">
+              <label htmlFor="specialisation" className="fw-bold mb-2" style={{ color: "#2d3748" }}>
+                Specialisation *
+              </label>
               <input
-                placeholder="Specialisation"
+                id="specialisation"
                 value={formData.specialisation}
-                onChange={(e) =>
-                  setFormData({ ...formData, specialisation: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, specialisation: e.target.value })}
                 type="text"
+                placeholder="Cardiology, Neurology, etc."
+                className="form-control"
+                style={{ padding: "12px", borderRadius: "8px" }}
                 required
-                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
               />
             </div>
 
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                name="isActive"
-                checked={formData.isActive}
-                onChange={(e) =>
-                  setFormData({ ...formData, isActive: e.target.checked })
-                }
-                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-              />
-              <label className="ml-2 block text-sm text-gray-900">
-                Is Active?
-              </label>
+            {/* Shift Timing */}
+            <div className="row mb-4">
+              <div className="col-md-6">
+                <label htmlFor="start" className="fw-bold mb-2" style={{ color: "#2d3748" }}>
+                  Shift Start (24hr)
+                </label>
+                <input
+                  id="start"
+                  value={formData.start}
+                  onChange={(e) => setFormData({ ...formData, start: e.target.value })}
+                  type="number"
+                  min="0"
+                  max="23"
+                  placeholder="9"
+                  className="form-control"
+                  style={{ padding: "12px", borderRadius: "8px" }}
+                />
+              </div>
+
+              <div className="col-md-6">
+                <label htmlFor="end" className="fw-bold mb-2" style={{ color: "#2d3748" }}>
+                  Shift End (24hr)
+                </label>
+                <input
+                  id="end"
+                  value={formData.end}
+                  onChange={(e) => setFormData({ ...formData, end: e.target.value })}
+                  type="number"
+                  min="0"
+                  max="23"
+                  placeholder="17"
+                  className="form-control"
+                  style={{ padding: "12px", borderRadius: "8px" }}
+                />
+              </div>
             </div>
 
-            <div>
-              <label
-                htmlFor="starttime"
-                className="block text-sm font-medium text-gray-700"
+            {/* Active Status */}
+            <div className="mb-4">
+              <div className="form-check">
+                <input
+                  id="isActive"
+                  type="checkbox"
+                  checked={formData.isActive}
+                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                  className="form-check-input"
+                  style={{ width: "1.2em", height: "1.2em" }}
+                />
+                <label htmlFor="isActive" className="form-check-label ms-2" style={{ color: "#2d3748" }}>
+                  Doctor is currently active
+                </label>
+              </div>
+            </div>
+
+            {/* Submit Buttons */}
+            <div className="d-flex gap-3">
+              <button
+                type="submit"
+                className="btn btn-outline-primary flex-grow-1"
+                style={{ 
+                  padding: "12px", 
+                  borderRadius: "8px",
+                  fontSize: "1rem",
+                  fontWeight: "500"
+                }}
               >
-                Shift Start Time (24hr format):
-              </label>
-              <input
-                name="starttime"
-                value={formData.start}
-                onChange={(e) =>
-                  setFormData({ ...formData, start: e.target.value })
-                }
-                type="number"
-                min="0"
-                max="23"
-                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-              />
-            </div>
+                Update Doctor
+              </button>
 
-            <div>
-              <label
-                htmlFor="endtime"
-                className="block text-sm font-medium text-gray-700"
+              <button
+                type="button"
+                onClick={() => navigate("/admin/doctors")}
+                className="btn btn-outline-secondary flex-grow-1"
+                style={{ 
+                  padding: "12px", 
+                  borderRadius: "8px",
+                  fontSize: "1rem",
+                  fontWeight: "500"
+                }}
               >
-                Shift End Time (24hr format):
-              </label>
-              <input
-                name="endtime"
-                value={formData.end}
-                onChange={(e) =>
-                  setFormData({ ...formData, end: e.target.value })
-                }
-                type="number"
-                min="0"
-                max="23"
-                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-              />
+                Cancel
+              </button>
             </div>
-          </div>
-
-          <div className="flex space-x-4">
-            <button
-              type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              Update Doctor
-            </button>
-
-            <button
-              type="button"
-              onClick={() => navigate("/admin/doctors")}
-              className="group relative w-full flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
+      </div>
       </div>
     </div>
   );
