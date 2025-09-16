@@ -52,7 +52,6 @@ router.get("/getDocs", async (req, res) => {
 }); 
 
 
-
 router.delete("/deleteDoc/:id",async(req,res)=>{
   const id =req.params.id;
   try {
