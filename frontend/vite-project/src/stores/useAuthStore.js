@@ -3,103 +3,93 @@ import toast from "react-hot-toast"
 import {axiosInstance} from "../lib/axios"
 
 
-export const useAuthStore = create((set,get)=>({
+export const useAuthStore = create((set) => ({
   authUser: null,
   isSigningUp: false,
   isLoggingIn: false,
   isCheckingAuth: true,
-  isUpdatingProfile:false,
-  isAddingDoc:false,
+  isUpdatingProfile: false,
+  isAddingDoc: false,
 
-  checkAuth: async()=>{
+  checkAuth: async () => {
     try {
-        const res = await axiosInstance.get("/user/check", { withCredentials: true })
-        console.log("Login response:", res.data);
-        set({authUser:res.data});
-        
+      const res = await axiosInstance.get("/user/check", {
+        withCredentials: true,
+      });
+      console.log("Login response:", res.data);
+      set({ authUser: res.data });
     } catch (error) {
-        console.log("Error in checkAuth",error.message);
-        set({authUser:null});
-    }
-    finally{
-      set({isCheckingAuth:false})
+      console.log("Error in checkAuth", error.message);
+      set({ authUser: null });
+    } finally {
+      set({ isCheckingAuth: false });
     }
   },
-  signup: async(data)=>{
-    set({isSigningUp:true})
+  signup: async (data) => {
+    set({ isSigningUp: true });
     try {
-      const res = await axiosInstance.post("/user/signup",data)
-      set({authUser:res.data});
+      const res = await axiosInstance.post("/user/signup", data);
+      set({ authUser: res.data });
       toast.success("User Created Successfully");
-      return ({success:true})
+      return { success: true };
     } catch (error) {
-      console.log("Error in signup",error.message);
+      console.log("Error in signup", error.message);
       toast.error(error.response.data.message);
-      
-    }
-    finally{
-      set({isSigningUp:false})
+    } finally {
+      set({ isSigningUp: false });
     }
   },
-  login:async(data)=>{
-    set({isLoggingIn:true})
+  login: async (data) => {
+    set({ isLoggingIn: true });
     try {
-      const res = await axiosInstance.post("/user/login",data)
-      set({authUser:res.data});
+      const res = await axiosInstance.post("/user/login", data);
+      set({ authUser: res.data });
       toast.success("User Logged In Successfully");
-      return ({success:true})
+      return { success: true };
     } catch (error) {
-      console.log("Error in login",error.message);
+      console.log("Error in login", error.message);
       toast.error(error.response.data.message);
-      
-    }
-    finally{
-      set({isLoggingIn:false})
+    } finally {
+      set({ isLoggingIn: false });
     }
   },
 
-
-  updateProfile:async(data)=>{
-    set({isUpdatingProfile:true})
+  updateProfile: async (data) => {
+    set({ isUpdatingProfile: true });
     try {
-      const res = await axiosInstance.put("/user/update-profile",data)
-      set({authUser:res.data});
+      const res = await axiosInstance.put("/user/update-profile", data);
+      set({ authUser: res.data });
       toast.success("Profile Updated Successfully");
-      return ({success:true})
+      return { success: true };
     } catch (error) {
-      console.log("Error in updateProfile",error.message);
+      console.log("Error in updateProfile", error.message);
       toast.error(error.response.data.message);
-      
-    }
-    finally{
-      set({isUpdatingProfile:false})
+    } finally {
+      set({ isUpdatingProfile: false });
     }
   },
-  logout:async(navigate)=>{
+  logout: async (navigate) => {
     try {
-      await axiosInstance.post("/user/logout")
-      set({authUser:null});
+      await axiosInstance.post("/user/logout");
+      set({ authUser: null });
       toast.success("User Logged Out Successfully");
-      navigate("/login")
+      navigate("/login");
     } catch (error) {
-      console.log("Error in logout",error.message);
+      console.log("Error in logout", error.message);
       toast.error(error.response.data.message);
     }
   },
-  addDocs:async(data)=>{
-    set({isAddingDoc:true})
+  addDocs: async (data) => {
+    set({ isAddingDoc: true });
     try {
-      const res = await axiosInstance.post("/user/upload",data);
-      toast.success("Document Added Successfully");
-      return ({success:true})
+      axiosInstance.post("/user/upload", data);
+       toast.success("Document Added Successfully");
+       return { success: true };
     } catch (error) {
-      console.log("Error in addDocs",error.message);
+      console.log("Error in addDocs", error.message);
       toast.error(error.response.data.message);
-      
+    } finally {
+      set({ isAddingDoc: false });
     }
-    finally{
-      set({isAddingDoc:false})
-    }
-  }
-
-}))
+  },
+}));

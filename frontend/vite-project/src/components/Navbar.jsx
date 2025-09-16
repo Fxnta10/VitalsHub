@@ -7,14 +7,11 @@ export default function Navbar() {
     const { logout } = useAuthStore();
     const navigate = useNavigate();
     return (
-        <div>
-            <Link to="/">Home</Link>
-            <LogOut />
-            <button onClick={() => logout(navigate)}>Logout</button>
-
-            <Link to="/myprofile">My Profile</Link>
-
-
-        </div>
-    )
+      <div>
+        <Link to="/">Home</Link>
+        <LogOut />
+        <button onClick={() => logout(navigate)}>Logout</button>
+        <Link to="/myprofile">My Profile</Link>
+      </div>
+    );
 }
