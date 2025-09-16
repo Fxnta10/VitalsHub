@@ -132,24 +132,22 @@ export const logout = async (req, res) => {
 
 export const me = async (req, res) => {
   try {
-    const hospital = await Hospital.findById(req.hospital.id).select(
-      "-password"
-    );
+    // const hospital = await Hospital.findById(req.hospital._id);
 
-    if (!hospital) {
-      return res.status(404).json({
-        success: false,
-        message: "Hospital not found",
-      });
-    }
+    // if (!hospital) {
+    //   return res.status(404).json({
+    //     success: false,
+    //     message: "Hospital not found",
+    //   });
+    // }
 
     res.status(200).json({
       success: true,
       hospital: {
-        id: hospital._id,
-        hospitalId: hospital.hospitalId,
-        email: hospital.email,
-        address: hospital.address,
+        id: req.hospital._id,
+        hospitalId: req.hospital.hospitalId,
+        email: req.hospital.email,
+        address: req.hospital.address,
       },
     });
   } catch (err) {

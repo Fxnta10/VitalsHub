@@ -31,22 +31,24 @@ export const getAllDoctors = async (req, res) => {
 };
 
 export const newDoctor = async (req, res) => {
-  const { name, email, specialization, start, end } = req.body;
+  const { name, email, specialisation, start, end, isActive } = req.body;
 
   // Get hospitalId from authenticated token
   const hospitalId = req.hospital.hospitalId;
+  console.log("HospitalID:", hospitalId);
+  console.log("Request body:", req.body);
 
   try {
     const newDoctor = new Doctor({
       hospitalId: hospitalId,
       name: name,
       email: email,
-      specialisation: specialization,
+      specialisation: specialisation,
       shift: {
         start: start,
         end: end,
       },
-      isActive: true,
+      isActive: isActive !== undefined ? isActive : true,
       appointments: [],
     });
 
@@ -98,30 +100,46 @@ export const getDoctorDetails = async (req, res) => {
 };
 
 export const updateDoctor = async (req, res) => {
-  const { value, parameter } = req.body;
+  const { name, email, specialisation, start, end, isActive } = req.body;
   const { id } = req.params; //id of doctor u want to update
+
+  console.log("Updating doctor with ID:", id);
+  console.log("Update data:", req.body);
 
   try {
     const doctor = await Doctor.findById(id);
     if (!doctor) {
-      res.status(500).json({
+      return res.status(404).json({
         success: false,
-        message: "Doctor with that ID does not exist ",
+        message: "Doctor with that ID does not exist",
       });
     }
 
-    doctor[parameter] = value;
+    // Update doctor fields
+    if (name !== undefined) doctor.name = name;
+    if (email !== undefined) doctor.email = email;
+    if (specialisation !== undefined) doctor.specialisation = specialisation;
+    if (isActive !== undefined) doctor.isActive = isActive;
+    
+    // Update shift times if provided
+    if (start !== undefined || end !== undefined) {
+      if (!doctor.shift) doctor.shift = {};
+      if (start !== undefined) doctor.shift.start = start;
+      if (end !== undefined) doctor.shift.end = end;
+    }
+
     await doctor.save();
+    
     res.status(200).json({
       success: true,
-      message: "updated doctor ",
+      message: "Doctor updated successfully",
       data: doctor,
     });
   } catch (err) {
     console.error(err);
     res.status(500).json({
       success: false,
-      message: "Something went wrong updating doctor ",
+      message: "Something went wrong updating doctor",
     });
   }
 };

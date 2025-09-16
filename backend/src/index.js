@@ -22,14 +22,14 @@ app.use(express.urlencoded({limit: "10mb" , extended: true }));
 app.use(cookieParser());
 app.use(cors(
     {
-    origin: "http://localhost:5173",  // your frontend URL
+    origin: ["http://localhost:5173", "http://localhost:5174"],  // Allow both frontend ports
     credentials: true,  
     }
 ));
 app.use('/api/user',authRoutes)
 app.use('/api/user',uploadRoutes)
 
-app.use('/api/admin',loginRoutes);
+app.use("/api/auth", loginRoutes);
 app.use("/api/appointments", appointmentRouter); //CRUD of Appointments and state update
 app.use("/api/admin/doctors", doctorRouter); 
 
