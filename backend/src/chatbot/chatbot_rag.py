@@ -12,12 +12,19 @@ from langchain.memory import ConversationBufferWindowMemory
 from langchain.prompts import PromptTemplate
 from langchain_groq import ChatGroq
 from langchain.schema import BaseMessage, HumanMessage, AIMessage
+from dotenv import load_dotenv
 
+# Load environment variables
+load_dotenv()
+
+# Replace hardcoded credentials with environment variables
+MONGO_URI = os.getenv('MONGO_URI')
+GROQ_API_KEY = os.getenv('GROQ_API_KEY')
+
+if not MONGO_URI or not GROQ_API_KEY:
+    raise ValueError("Missing required environment variables. Please check .env file")
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-
-MONGO_URI = "mongodb+srv://SIH25018DB:SIH25018@cluster0.k6z2tpt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-GROQ_API_KEY = "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"
 
 client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
 embedding_model = HuggingFaceEmbeddings(
