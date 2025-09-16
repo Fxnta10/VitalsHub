@@ -17,7 +17,7 @@ router.post("/upload", upload.single("file"), async (req, res) => {
       pdf: { data: fileData, contentType }
     });
 
-    res.status(200).json({doc});
+    res.status(200).json({success:true,doc});
   } catch (error) {
     console.error(error.message);
     res.status(500).send("Error uploading file");
@@ -41,5 +41,26 @@ router.get("/pdf/:id", async (req, res) => {
     res.status(500).send("Error fetching PDF");
   }
 });
+router.get("/getDocs", async (req, res) => {
+  try {
+    const docs = await pdfDetails.find();
+    res.status(200).json(docs);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send("Error fetching documents");
+  }
+}); 
+
+router.delete("/deleteDoc/:id",async(req,res)=>{
+  const id =req.params.id;
+  try {
+    const doc = await pdfDetails.findByIdAndDelete(id);
+    if(!doc) return res.status(404).json({success:false,message:"Document not found"});
+    res.status(200).json({success:true,message:"Document deleted successfully"});
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send("Error deleting document");
+  }
+})
 
 export default router;
