@@ -23,7 +23,7 @@ function App() {
    <div>
     {authUser&&<Navbar/>}
     <Routes>
-      <Route path="/" element={<HomePage/>} />
+      <Route path="/" element={authUser?<HomePage/>:<LoginPage/>} />
       <Route path="/signup" element={<SignupPage/>}/>
       <Route path="/login" element={<LoginPage/>} />
       <Route path="/myprofile" element={<MyProfile/>} />
