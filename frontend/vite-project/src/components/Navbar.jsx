@@ -4,6 +4,7 @@ import { LogOut } from "lucide-react"
 import { useAuthStore } from '../stores/useAuthStore'
 import { useNavigate } from 'react-router-dom';
 
+
 export default function Navbar() {
     const { logout } = useAuthStore();
     const navigate = useNavigate();
@@ -15,6 +16,7 @@ export default function Navbar() {
         <Link to="/myprofile">My Profile</Link>
       </div>
     );
+
 
 
 export default function Navbar() {
