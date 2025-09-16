@@ -9,10 +9,11 @@ import {connectDB} from "./lib/db.js"
 import dotenv from "dotenv" 
 import cookieParser from "cookie-parser"
 
-
+import axios from "axios"
 import loginRoutes from "./routes/login.router.js"
 import appointmentRouter from "./routes/appointment.router.js"
 import doctorRouter from "./routes/doctor.router.js"
+import chatbotRoutes from "./routes/chatbot.routes.js"
 
 
 dotenv.config();
@@ -29,10 +30,23 @@ app.use(cors(
 app.use('/api/user',authRoutes)
 app.use('/api/user',uploadRoutes)
 
+
+app.post("/api/chat", async (req, res) => {
+  try {
+    const { query } = req.body;
+    const response = await axios.post("http://localhost:8000/api/query", { query });
+    return res.json(response.data);
+  } catch (err) {
+    console.error("RAG API Error:", err.message);
+    return { error: "Failed to get response from RAG API" };
+  }
+})
+
+
 app.use('/api/admin',loginRoutes);
 app.use("/api/appointments", appointmentRouter); //CRUD of Appointments and state update
 app.use("/api/admin/doctors", doctorRouter); 
-
+app.use('/api/chatbot', chatbotRoutes); // Add chatbot routes
 
 
 app.get('/',(req,res)=>{

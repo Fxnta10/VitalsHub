@@ -10,6 +10,8 @@ import MyProfile from './pages/MyProfile'
 import Navbar from './components/Navbar'
 import { useAuthStore } from './stores/useAuthStore'
 import AddDocs from './pages/AddDocs'
+import MedicalRecords from './pages/MedicalRecords'
+import RagChatbot from './pages/RagChatbot'
 function App() {
   const{authUser,checkAuth,isCheckingAuth} = useAuthStore()
   useEffect(() => {
@@ -28,6 +30,8 @@ function App() {
       <Route path="/login" element={<LoginPage/>} />
       <Route path="/myprofile" element={<MyProfile/>} />
       <Route path="/addDocs" element={<AddDocs/>} />
+      <Route path="/medical-records" element={<MedicalRecords/>} />
+      <Route path="/chatbot" element={<RagChatbot/>} />
       <Route/>
     </Routes>
     <Toaster/>
