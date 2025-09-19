@@ -18,6 +18,9 @@ import AdminAddDoctorPage from "./pages/admin/AdminAddDoctorPage";
 import RagChatbot from "./pages/RagChatbot";
 import MedicalRecords from "./pages/MedicalRecords";
 import AdminNavbar from "./components/AdminNavbar";
+import AllHospitals from "./pages/AllHospitals";
+import AllDoctors from "./pages/AllDoctors";
+import CreateAppointment from "./pages/CreateAppointment";
 function App() {
   const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
 
@@ -50,6 +53,9 @@ function App() {
         <Route path="/addDocs" element={<AddDocs />} />
         <Route path="/medical-records" element={<MedicalRecords />} />
         <Route path="/chatbot" element={<RagChatbot />} />
+        <Route path="/hospitals" element={<AllHospitals />} />
+        <Route path="/doctors" element={<AllDoctors />} />
+        <Route path="/create-appointment" element={<CreateAppointment />} />
 
           
         <Route path="/admin/*">

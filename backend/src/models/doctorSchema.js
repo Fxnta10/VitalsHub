@@ -1,5 +1,19 @@
 import mongoose from "mongoose";
 
+const bookingSlotSchema = new mongoose.Schema(
+  {
+    time: {
+      type: Number, //  9 for 9 AM
+      required: true,
+    },
+    isAvailable: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  { _id: false }
+);
+
 const doctorSchema = new mongoose.Schema({
   hospitalId: {
     type: String,
@@ -38,6 +52,7 @@ const doctorSchema = new mongoose.Schema({
       ref: "Appointment",
     },
   ],
+  bookings: [bookingSlotSchema],
 });
 
 const Doctor = mongoose.model("Doctor", doctorSchema);

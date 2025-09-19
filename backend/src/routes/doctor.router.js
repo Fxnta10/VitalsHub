@@ -9,6 +9,7 @@ import {
   deleteDoctor,
   getAllDoctors,
   getDoctorDetails,
+  getDoctorsByHospital,
   newDoctor,
   updateDoctor,
 } from "../controllers/admin.doctor.controllers.js";
@@ -16,6 +17,9 @@ import {
 const router = express.Router();
 
 router.get("/all", authenticateToken, getAllDoctors);
+
+// Public route to get doctors by hospital (no auth required)
+router.get("/hospital/:hospitalId", getDoctorsByHospital);
 
 router.post("/new", authenticateToken, newDoctor);
 

@@ -20,9 +20,10 @@ export default function Navbar() {
       <div className="d-flex align-items-center">
         <Link to="/" className="fw-bold fs-4 text-primary me-4 text-decoration-none" style={{ letterSpacing: "1px" }}>VitalHealth</Link>
         <NavLink to="/" className={navLinkClass}>Home</NavLink>
-        <NavLink to="/find-doctor" className={navLinkClass}>Find a Doctor</NavLink>
-        <NavLink to="/appointments" className={navLinkClass}>Appointments</NavLink>
-        <NavLink to="/messages" className={navLinkClass}>Messages</NavLink>
+        <NavLink to="/hospitals" className={navLinkClass}>Book Appointment</NavLink>
+        <NavLink to="/appointments" className={navLinkClass}>My Appointments</NavLink>
+        <NavLink to="/medical-records" className={navLinkClass}>Medical Records</NavLink>
+        <NavLink to="/chatbot" className={navLinkClass}>Health Assistant</NavLink>
         <NavLink to="/myprofile" className={navLinkClass}>My Profile</NavLink>
       </div>
       <div className="d-flex align-items-center">

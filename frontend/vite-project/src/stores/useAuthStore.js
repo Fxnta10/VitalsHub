@@ -5,11 +5,14 @@ import {axiosInstance} from "../lib/axios"
 
 export const useAuthStore = create((set) => ({
   authUser: null,
+  allHospitals: null,
+  hospitalDoctors: null,
   isSigningUp: false,
   isLoggingIn: false,
   isCheckingAuth: true,
   isUpdatingProfile: false,
   isAddingDoc: false,
+  isLoading: false,
 
   checkAuth: async () => {
     try {
@@ -83,13 +86,62 @@ export const useAuthStore = create((set) => ({
     set({ isAddingDoc: true });
     try {
       axiosInstance.post("/user/upload", data);
-       toast.success("Document Added Successfully");
-       return { success: true };
+      toast.success("Document Added Successfully");
+      return { success: true };
     } catch (error) {
       console.log("Error in addDocs", error.message);
       toast.error(error.response.data.message);
     } finally {
       set({ isAddingDoc: false });
+    }
+  },
+  createAppointment: async (data) => {
+    set({ isLoading: true });
+    try {
+      await axiosInstance.post("/appointments/create", data);
+      toast.success("Appointment Created successfully");
+      return { success: true };
+    } catch (error) {
+      console.log("Error in creating appointment", error.message);
+      toast.error(
+        error.response?.data?.message || "Failed to create appointment"
+      );
+      return { success: false };
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  getAllHospitals: async () => {
+    set({ isLoading: true });
+    try {
+      const res = await axiosInstance.get("/auth/allhospitals");
+      set({ allHospitals: res.data.data });
+      return { success: true };
+    } catch (error) {
+      console.log("Error in getting all hospitals", error.message);
+      toast.error(error.response?.data?.message || "Failed to fetch hospitals");
+      return { success: false };
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  getDoctorsByHospital: async (hospitalId) => {
+    set({ isLoading: true });
+    try {
+      const res = await axiosInstance.get(
+        `/admin/doctors/hospital/${hospitalId}`
+      );
+      set({ hospitalDoctors: res.data.data || res.data });
+      return { success: true, data: res.data.data || res.data };
+    } catch (error) {
+      console.log("Error in getting doctors by hospital", error.message);
+      toast.error(error.response?.data?.message || "Failed to fetch doctors");
+      set({ hospitalDoctors: [] });
+      return { success: false };
+    } finally {
+      set({ isLoading: false });
     }
   },
 }));
