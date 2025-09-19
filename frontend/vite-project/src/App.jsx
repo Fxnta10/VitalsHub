@@ -17,10 +17,20 @@ import AdminEditDoctor from "./pages/admin/AdminEditDoctor";
 import AdminAddDoctorPage from "./pages/admin/AdminAddDoctorPage";
 import RagChatbot from "./pages/RagChatbot";
 import MedicalRecords from "./pages/MedicalRecords";
+import AllPharmacies from "./pages/AllPharmacies";
+import Pharmacy from "./pages/Pharmacy";
+import PharmacyLogin from "./pages/pharmaciesAdmin/pharmacyLogin";
 import AdminNavbar from "./components/AdminNavbar";
+
 import AllHospitals from "./pages/AllHospitals";
 import AllDoctors from "./pages/AllDoctors";
 import CreateAppointment from "./pages/CreateAppointment";
+
+import PharmacySignup from "./pages/pharmaciesAdmin/pharmacySignup";
+import PharmacyDashboard from "./pages/pharmaciesAdmin/PharmacyDashboard";
+import PharmacyAddMedicine from "./pages/pharmaciesAdmin/PharmacyAddMedicine";
+import PharmacyEditMed from "./pages/pharmaciesAdmin/PharmacyEditMed";
+
 function App() {
   const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
 
@@ -44,7 +54,7 @@ function App() {
   return (
 
     <div>
-      {authUser && !window.location.pathname.startsWith("/admin") && <Navbar />}
+      {authUser && !window.location.pathname.startsWith("/admin") && !window.location.pathname.startsWith("/pharmacy")  && <Navbar />}
       <Routes>
         <Route path="/" element={authUser ? <HomePage />:<LoginPage/>} />
         <Route path="/signup" element={<SignupPage />} />
@@ -53,12 +63,17 @@ function App() {
         <Route path="/addDocs" element={<AddDocs />} />
         <Route path="/medical-records" element={<MedicalRecords />} />
         <Route path="/chatbot" element={<RagChatbot />} />
+
         <Route path="/hospitals" element={<AllHospitals />} />
         <Route path="/doctors" element={<AllDoctors />} />
         <Route path="/create-appointment" element={<CreateAppointment />} />
 
+        <Route path="/allPharmacies" element={<AllPharmacies />} />
+        <Route path="/pharmacy/:id" element={<Pharmacy />} />
+
+
           
-        <Route path="/admin/*">
+        <Route path="/admin/*" >
           <Route index element={<AdminLoginPage />} />
           <Route path="login" element={<AdminLoginPage />} />
           <Route path="register" element={<AdminRegisterPage />} />
@@ -68,6 +83,12 @@ function App() {
           <Route path="doctors/edit/:id" element={<AdminEditDoctor />} />
           {/* <Route path="appointments" element={<AdminAppointments />} /> */}
         </Route>
+
+        <Route path="/pharmacy/login" element={<PharmacyLogin/>}/>
+        <Route path="/pharmacy/signup" element={<PharmacySignup/>}/>
+        <Route path="/pharmacy/dashboard" element={<PharmacyDashboard/>}/>
+        <Route path="/pharmacy/add-medicine" element={<PharmacyAddMedicine/>}/>
+        <Route path="/pharmacy/edit-medicine/:id" element={<PharmacyEditMed/>}/>
       </Routes>
       <Toaster />
     </div>

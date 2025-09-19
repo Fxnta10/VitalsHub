@@ -15,6 +15,11 @@ import appointmentRouter from "./routes/appointment.router.js"
 import doctorRouter from "./routes/doctor.router.js"
 import chatbotRoutes from "./routes/chatbot.routes.js"
 import pharmacyRoutes from "./routes/pharmacy.routes.js";
+
+
+import userPharmacyRoutes from "./routes/userPharamcy.routes.js";
+
+
 dotenv.config();
 
 app.use(express.json({ limit: "10mb" }));
@@ -49,6 +54,7 @@ app.use("/api/appointments", appointmentRouter); //CRUD of Appointments and stat
 app.use("/api/admin/doctors", doctorRouter);
 app.use("/api/chatbot", chatbotRoutes); // Add chatbot routes
 app.use("/api/pharmacy", pharmacyRoutes);
+app.use("/api/user/pharmacy", userPharmacyRoutes);
 
 app.get('/',(req,res)=>{
     res.send("Hellow World")

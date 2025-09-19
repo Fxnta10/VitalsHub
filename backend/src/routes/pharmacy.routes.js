@@ -26,7 +26,7 @@ router.get("/me", authenticatePharmacyToken, (req, res) => {
 router.post("/medicine/new", authenticatePharmacyToken, newMedicine);
 router.get("/allmedicine", authenticatePharmacyToken, getAllMedicine);
 router.get(
-  "/medicine/:medicineId",
+ "/medicine/:medicineId",
   authenticatePharmacyToken,
   getMedicineDetails
 );
