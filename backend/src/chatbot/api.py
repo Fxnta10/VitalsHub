@@ -68,3 +68,7 @@ async def handle_booking(request: BookingRequest):
         patient_email=request.patient_email
     )
     return {"success": True, "response": result}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("api:app", host="127.0.0.1", port=5002, reload=True)

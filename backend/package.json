@@ -4,10 +4,9 @@
   "description": "",
   "main": "src/index.js",
   "scripts": {
-    "dev": "concurrently \"npm run dev:backend\" \"npm run start:chatbot\"",
-    "dev:backend": "nodemon src/index.js",
+    "dev": "concurrently \"npm run start\" \"npm run start:chatbot\"",
     "start": "node src/index.js",
-    "start:chatbot": "cd src/chatbot && /Users/surya/workspace/sih2025/medical-dashboard/.venv/bin/uvicorn api:app --reload"
+    "start:chatbot": "cd src/chatbot && uvicorn api:app --reload"
   },
   "keywords": [],
   "author": "",

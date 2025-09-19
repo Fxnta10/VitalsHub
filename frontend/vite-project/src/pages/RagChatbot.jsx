@@ -48,25 +48,30 @@ export default function RagChatbot() {
         setIsLoading(true);
 
         try {
-            // Simulate your API call - replace with actual endpoint
             const res = await fetch("http://localhost:5002/api/chatbot/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ query: userMessage }),
             });
+
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+
             const data = await res.json();
-            console.log("Bot response:", res);
-            
-            
-            setMessages(prev => [...prev, { type: 'bot', content: data.response ||  data.pharmacy ||data.hospital|| 'I have no response.' }]);
-        } catch (error) {
             setMessages(prev => [...prev, { 
                 type: 'bot', 
-                content: 'Sorry, I encountered an error. Please try again.' 
+                content: data.response || 'I could not process that request.'
             }]);
-            console.error('Error:', error);
+        } catch (error) {
+            console.error('Chatbot Error:', error);
+            setMessages(prev => [...prev, { 
+                type: 'bot', 
+                content: 'Sorry, I encountered an error. Please try again later.'
+            }]);
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     }
 
     return (
