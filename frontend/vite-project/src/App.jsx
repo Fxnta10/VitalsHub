@@ -21,10 +21,16 @@ import AllPharmacies from "./pages/AllPharmacies";
 import Pharmacy from "./pages/Pharmacy";
 import PharmacyLogin from "./pages/pharmaciesAdmin/pharmacyLogin";
 import AdminNavbar from "./components/AdminNavbar";
+
+import AllHospitals from "./pages/AllHospitals";
+import AllDoctors from "./pages/AllDoctors";
+import CreateAppointment from "./pages/CreateAppointment";
+
 import PharmacySignup from "./pages/pharmaciesAdmin/pharmacySignup";
 import PharmacyDashboard from "./pages/pharmaciesAdmin/PharmacyDashboard";
 import PharmacyAddMedicine from "./pages/pharmaciesAdmin/PharmacyAddMedicine";
 import PharmacyEditMed from "./pages/pharmaciesAdmin/PharmacyEditMed";
+
 function App() {
   const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
 
@@ -57,8 +63,14 @@ function App() {
         <Route path="/addDocs" element={<AddDocs />} />
         <Route path="/medical-records" element={<MedicalRecords />} />
         <Route path="/chatbot" element={<RagChatbot />} />
+
+        <Route path="/hospitals" element={<AllHospitals />} />
+        <Route path="/doctors" element={<AllDoctors />} />
+        <Route path="/create-appointment" element={<CreateAppointment />} />
+
         <Route path="/allPharmacies" element={<AllPharmacies />} />
         <Route path="/pharmacy/:id" element={<Pharmacy />} />
+
 
           
         <Route path="/admin/*" >

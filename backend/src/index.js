@@ -15,7 +15,10 @@ import appointmentRouter from "./routes/appointment.router.js"
 import doctorRouter from "./routes/doctor.router.js"
 import chatbotRoutes from "./routes/chatbot.routes.js"
 import pharmacyRoutes from "./routes/pharmacy.routes.js";
+
+
 import userPharmacyRoutes from "./routes/userPharamcy.routes.js";
+
 
 dotenv.config();
 
@@ -30,7 +33,6 @@ app.use(
 );
 app.use("/api/user", authRoutes);
 app.use("/api/user", uploadRoutes);
-
 app.post("/api/chat", async (req, res) => {
   try {
     const { query } = req.body;

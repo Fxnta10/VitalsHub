@@ -10,10 +10,47 @@ export const getAllDoctors = async (req, res) => {
   const hospitalId = req.hospital.hospitalId; // Using the ObjectId from token
   try {
     const doctors = await Doctor.find({ hospitalId: hospitalId });
-    if (doctors.length == 0) {
-      res.status(500).json({
+    if (doctors.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No doctors found for this hospital",
+        data: [],
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: doctors,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong fetching doctors",
+    });
+  }
+};
+
+// Get doctors by hospital ID (for public use without authentication)
+export const getDoctorsByHospital = async (req, res) => {
+  const { hospitalId } = req.params;
+  
+  try {
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(hospitalId)) {
+      return res.status(400).json({
         success: false,
-        message: "No Doctors",
+        message: "Invalid hospital ID format",
+      });
+    }
+
+    const doctors = await Doctor.find({ hospitalId: hospitalId });
+    
+    if (doctors.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No doctors found for this hospital",
+        data: [],
       });
     }
 
@@ -38,6 +75,15 @@ export const newDoctor = async (req, res) => {
   console.log("HospitalID:", hospitalId);
   console.log("Request body:", req.body);
 
+  let bookings = [];
+
+  for (let hour = start; hour < end; hour++) {
+    bookings.push({
+      time: hour,
+      isAvailable: true,
+    });
+  }
+
   try {
     const newDoctor = new Doctor({
       hospitalId: hospitalId,
@@ -50,6 +96,7 @@ export const newDoctor = async (req, res) => {
       },
       isActive: isActive !== undefined ? isActive : true,
       appointments: [],
+      bookings: bookings,
     });
 
     await newDoctor.save();
@@ -72,7 +119,7 @@ export const getDoctorDetails = async (req, res) => {
   const { id } = req.params;
 
   if (!id) {
-    res.status(500).json({
+    return res.status(400).json({
       success: false,
       message: "Not valid ID",
     });
@@ -81,9 +128,9 @@ export const getDoctorDetails = async (req, res) => {
   try {
     const doctor = await Doctor.findById(id);
     if (!doctor) {
-      res.status(500).json({
+      return res.status(404).json({
         success: false,
-        message: "Doctor with that ID does not exist ",
+        message: "Doctor with that ID does not exist",
       });
     }
     res.status(200).json({
@@ -94,7 +141,7 @@ export const getDoctorDetails = async (req, res) => {
     console.error(err);
     res.status(500).json({
       success: false,
-      message: "Something went wrong fetching doctor ",
+      message: "Something went wrong fetching doctor",
     });
   }
 };
@@ -120,16 +167,27 @@ export const updateDoctor = async (req, res) => {
     if (email !== undefined) doctor.email = email;
     if (specialisation !== undefined) doctor.specialisation = specialisation;
     if (isActive !== undefined) doctor.isActive = isActive;
-    
+
     // Update shift times if provided
     if (start !== undefined || end !== undefined) {
       if (!doctor.shift) doctor.shift = {};
       if (start !== undefined) doctor.shift.start = start;
       if (end !== undefined) doctor.shift.end = end;
+
+      // Regenerate bookings only if both start and end are provided
+      if (start !== undefined && end !== undefined) {
+        doctor.bookings = []; // Clear existing bookings
+        for (let hour = start; hour < end; hour++) {
+          doctor.bookings.push({
+            time: hour,
+            isAvailable: true,
+          });
+        }
+      }
     }
 
     await doctor.save();
-    
+
     res.status(200).json({
       success: true,
       message: "Doctor updated successfully",

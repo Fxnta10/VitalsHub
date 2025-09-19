@@ -2,6 +2,7 @@ import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import generateToken from "../lib/utils.js";
 import cloudinary from "../lib/cloudinary.js";
+import Hospital from "../models/hospitalSchema.js";
 export const signup = async (req, res) => {
   console.log(req.body);
 
@@ -127,5 +128,35 @@ export const checkAuth = (req, res) => {
   } catch (error) {
     console.log("Error in checkAuth controller", error.message);
     res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+// Get all hospitals
+export const getAllHospitals = async (req, res) => {
+  try {
+    const hospitals = await Hospital.find()
+      .select('-password') // Exclude password from response
+      .sort({ hospitalId: 1 }); // Sort by hospital ID
+
+    if (hospitals.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No hospitals found",
+        data: []
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Found ${hospitals.length} hospitals`,
+      data: hospitals
+    });
+
+  } catch (error) {
+    console.log("Error in getAllHospitals controller", error.message);
+    res.status(500).json({ 
+      success: false,
+      message: "Internal Server Error" 
+    });
   }
 };

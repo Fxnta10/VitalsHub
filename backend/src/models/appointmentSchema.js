@@ -14,7 +14,7 @@ const appointmentSchema = new mongoose.Schema({
   patientId: {
     type: mongoose.Schema.Types.ObjectId,
     required: true,
-    ref: "Patient",
+    ref: "User",
   },
   appointmentTime: {
     type: Date,
@@ -37,4 +37,4 @@ const appointmentSchema = new mongoose.Schema({
 
 const Appointment = mongoose.model("Appointment", appointmentSchema);
 
-export default Appointment
+export default Appointment;
