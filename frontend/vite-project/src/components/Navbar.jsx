@@ -18,7 +18,7 @@ export default function Navbar() {
   return (
     <nav className="d-flex align-items-center justify-content-between px-4 py-3 shadow-sm bg-white" style={{ borderRadius: "12px" }}>
       <div className="d-flex align-items-center">
-        <Link to="/" className="fw-bold fs-4 text-primary me-4 text-decoration-none" style={{ letterSpacing: "1px" }}>VitalHealth</Link>
+        <Link to="/" className="fw-bold fs-4 text-primary me-4 text-decoration-none" style={{ letterSpacing: "1px" }}>VitalsHub</Link>
         <NavLink to="/" className={navLinkClass}>Home</NavLink>
         <NavLink to="/allPharmacies" className={navLinkClass}>Medicine & Pharmacy</NavLink>
         <NavLink to="/appointments" className={navLinkClass}>Appointments</NavLink>
