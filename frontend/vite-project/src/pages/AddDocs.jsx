@@ -2,7 +2,7 @@ import React, { useState,useEffect } from 'react'
 import { useAuthStore } from '../stores/useAuthStore';
 import { axiosInstance } from '../lib/axios';
 import toast from 'react-hot-toast';
-import { set } from 'mongoose';
+// import { set } from 'mongoose';
 
 
 export default function AddDocs() {
