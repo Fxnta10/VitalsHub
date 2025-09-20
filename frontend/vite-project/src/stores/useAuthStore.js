@@ -85,7 +85,7 @@ export const useAuthStore = create((set) => ({
   addDocs: async (data) => {
     set({ isAddingDoc: true });
     try {
-      axiosInstance.post("/user/upload", data);
+      await axiosInstance.post("/user/upload", data);
       toast.success("Document Added Successfully");
       return { success: true };
     } catch (error) {
@@ -100,12 +100,41 @@ export const useAuthStore = create((set) => ({
     try {
       await axiosInstance.post("/appointments/create", data);
       toast.success("Appointment Created successfully");
+
+      // Get the current state to access authUser
+      const { authUser, sendSms } = useAuthStore.getState();
+
+      if (authUser?.phoneNumber) {
+        await sendSms({
+          phone: `+91${authUser.phoneNumber}`,
+          message: `Appointment Successfully booked at ${data.appointmentTime} with description ${data.description}`,
+        });
+      }
+
       return { success: true };
     } catch (error) {
       console.log("Error in creating appointment", error.message);
       toast.error(
         error.response?.data?.message || "Failed to create appointment"
       );
+      return { success: false };
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  sendSms: async (data) => {
+    set({ isLoading: true });
+    console.log("Sending SMS with data:", data);
+    try {
+      const response = await axiosInstance.post("/send-sms", data);
+      console.log("SMS response:", response.data);
+      toast.success(`SMS sent successfully to ${data.phone}`);
+      return { success: true };
+    } catch (error) {
+      console.error("Error in sending SMS:", error);
+      console.error("Error response:", error.response?.data);
+      toast.error(error.response?.data?.error || "Failed to send SMS");
       return { success: false };
     } finally {
       set({ isLoading: false });
@@ -134,7 +163,7 @@ export const useAuthStore = create((set) => ({
         `/admin/doctors/hospital/${hospitalId}`
       );
       console.log(res.data);
-      
+
       set({ hospitalDoctors: res.data.data || res.data });
       return { success: true, data: res.data.data || res.data };
     } catch (error) {

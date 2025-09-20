@@ -22,12 +22,28 @@ export default function AllHospitals() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 text-lg font-medium">
-            Loading hospitals...
-          </p>
+      <div style={{ background: "#f6f8fb", minHeight: "100vh" }}>
+        <div className="container py-5">
+          <div
+            className="d-flex justify-content-center align-items-center"
+            style={{ minHeight: "60vh" }}
+          >
+            <div className="text-center">
+              <div
+                className="spinner-border text-primary mb-3"
+                role="status"
+                style={{ width: "3rem", height: "3rem" }}
+              >
+                <span className="visually-hidden">Loading...</span>
+              </div>
+              <p
+                className="text-secondary"
+                style={{ fontSize: "1.1rem", fontWeight: "500" }}
+              >
+                Loading hospitals...
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -35,79 +51,316 @@ export default function AllHospitals() {
 
   if (!allHospitals || allHospitals.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="text-7xl mb-4">🏥</div>
-          <h2 className="text-3xl font-extrabold text-gray-800 mb-2">
-            No Hospitals Found
-          </h2>
-          <p className="text-gray-600 text-lg">
-            There are currently no hospitals available.
-          </p>
+      <div style={{ background: "#f6f8fb", minHeight: "100vh" }}>
+        <div className="container py-5">
+          <div
+            className="d-flex justify-content-center align-items-center"
+            style={{ minHeight: "60vh" }}
+          >
+            <div className="text-center">
+              <div className="text-center mb-4" style={{ fontSize: "5rem" }}>
+                🏥
+              </div>
+              <h2 className="fw-bold mb-3" style={{ color: "#2d3748" }}>
+                No Hospitals Found
+              </h2>
+              <p className="text-secondary" style={{ fontSize: "1.1rem" }}>
+                There are currently no hospitals available in our network.
+              </p>
+              <button
+                onClick={() => window.location.reload()}
+                className="btn btn-primary mt-3"
+                style={{ borderRadius: "8px", padding: "12px 24px" }}
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <h1 className="text-5xl font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
+    <div style={{ background: "#f6f8fb", minHeight: "100vh" }}>
+      <div className="container py-5">
+        {/* Header Section */}
+        <div className="mb-5">
+          <h2 className="fw-bold mb-2" style={{ color: "#2d3748" }}>
             Available Hospitals
-          </h1>
-          <p className="text-lg text-gray-600">
-            Choose a hospital below to view available doctors
+          </h2>
+          <p className="text-secondary mb-0" style={{ fontSize: "1.1rem" }}>
+            Choose a hospital below to view available doctors and book your
+            appointment.
           </p>
         </div>
 
-        {/* Hospital Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {allHospitals.map((hospital) => (
+        {/* Statistics Cards */}
+        <div className="row g-3 mb-5">
+          <div className="col-md-4">
             <div
-              key={hospital._id}
-              className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-transform duration-300 border border-gray-100 overflow-hidden transform hover:-translate-y-2"
+              className="card border-0 h-100"
+              style={{
+                background: "white",
+                borderRadius: "12px",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+              }}
             >
-              <div className="p-8">
-                {/* Hospital Icon */}
-                <div className="flex items-center justify-center w-20 h-20 bg-blue-100 rounded-full mx-auto mb-6 shadow-inner">
-                  <span className="text-4xl">🏥</span>
-                </div>
-
-                <div className="text-center mb-6">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                    {hospital.hospitalId}
-                  </h3>
-                  <div className="flex items-center justify-center text-gray-600 mb-2 text-sm">
-                    <span className="mr-2">📧</span>
-                    {hospital.email}
-                  </div>
-                  <div className="flex items-start justify-center text-gray-600 text-sm">
-                    <span className="mr-2">📍</span>
-                    <p className="text-center max-w-xs">{hospital.address}</p>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => handleViewDoctors(hospital)}
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-4 rounded-xl transition duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+              <div className="card-body d-flex align-items-center p-4">
+                <div
+                  className="rounded-circle d-flex align-items-center justify-content-center me-3"
+                  style={{
+                    background: "#f1f5f9",
+                    width: "48px",
+                    height: "48px",
+                  }}
                 >
-                  <span className="text-lg">👨‍⚕️</span>
-                  View Doctors
-                </button>
+                  <span style={{ fontSize: "1.5rem" }}>🏥</span>
+                </div>
+                <div>
+                  <h6
+                    className="fw-bold mb-1"
+                    style={{ color: "#2d3748", fontSize: "1.5rem" }}
+                  >
+                    {allHospitals?.length || 0}
+                  </h6>
+                  <p
+                    className="mb-0 text-secondary"
+                    style={{ fontSize: "0.9rem" }}
+                  >
+                    Hospitals Available
+                  </p>
+                </div>
               </div>
             </div>
-          ))}
+          </div>
+          <div className="col-md-4">
+            <div
+              className="card border-0 h-100"
+              style={{
+                background: "white",
+                borderRadius: "12px",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+              }}
+            >
+              <div className="card-body d-flex align-items-center p-4">
+                <div
+                  className="rounded-circle d-flex align-items-center justify-content-center me-3"
+                  style={{
+                    background: "#f1f5f9",
+                    width: "48px",
+                    height: "48px",
+                  }}
+                >
+                  <span style={{ fontSize: "1.5rem" }}>⏰</span>
+                </div>
+                <div>
+                  <h6
+                    className="fw-bold mb-1"
+                    style={{ color: "#2d3748", fontSize: "1.5rem" }}
+                  >
+                    24/7
+                  </h6>
+                  <p
+                    className="mb-0 text-secondary"
+                    style={{ fontSize: "0.9rem" }}
+                  >
+                    Emergency Care
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="col-md-4">
+            <div
+              className="card border-0 h-100"
+              style={{
+                background: "white",
+                borderRadius: "12px",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+              }}
+            >
+              <div className="card-body d-flex align-items-center p-4">
+                <div
+                  className="rounded-circle d-flex align-items-center justify-content-center me-3"
+                  style={{
+                    background: "#f1f5f9",
+                    width: "48px",
+                    height: "48px",
+                  }}
+                >
+                  <span style={{ fontSize: "1.5rem" }}>👨‍⚕️</span>
+                </div>
+                <div>
+                  <h6
+                    className="fw-bold mb-1"
+                    style={{ color: "#2d3748", fontSize: "1.5rem" }}
+                  >
+                    100+
+                  </h6>
+                  <p
+                    className="mb-0 text-secondary"
+                    style={{ fontSize: "0.9rem" }}
+                  >
+                    Expert Doctors
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div className="text-center mt-16">
-          <p className="text-gray-600 text-lg">
+        {/* Hospital Cards */}
+        <div className="mb-5">
+          <h5 className="fw-bold mb-3" style={{ color: "#2d3748" }}>
+            Hospital Network
+          </h5>
+          <div className="row g-4">
+            {allHospitals.map((hospital) => (
+              <div key={hospital._id} className="col-md-6 col-lg-4">
+                <div
+                  className="card border-0 h-100 text-decoration-none"
+                  style={{
+                    background: "white",
+                    borderRadius: "12px",
+                    transition: "transform 0.2s ease",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.transform = "translateY(-2px)")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.transform = "translateY(0)")
+                  }
+                  onClick={() => handleViewDoctors(hospital)}
+                >
+                  <div className="card-body p-4">
+                    {/* Hospital Icon */}
+                    <div
+                      className="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3"
+                      style={{
+                        background: "#f1f5f9",
+                        width: "60px",
+                        height: "60px",
+                      }}
+                    >
+                      <span style={{ fontSize: "2rem" }}>🏥</span>
+                    </div>
+
+                    <div className="text-center mb-3">
+                      <h6 className="fw-bold mb-2" style={{ color: "#2d3748" }}>
+                        {hospital.hospitalId}
+                      </h6>
+
+                      {/* Contact Information */}
+                      <div className="mb-2">
+                        <div className="d-flex align-items-center justify-content-center mb-1">
+                          <span className="me-2" style={{ fontSize: "0.9rem" }}>
+                            📧
+                          </span>
+                          <small
+                            className="text-secondary"
+                            style={{ fontSize: "0.85rem" }}
+                          >
+                            {hospital.email}
+                          </small>
+                        </div>
+                        <div className="d-flex align-items-start justify-content-center">
+                          <span className="me-2" style={{ fontSize: "0.9rem" }}>
+                            📍
+                          </span>
+                          <small
+                            className="text-secondary text-center"
+                            style={{ fontSize: "0.85rem", maxWidth: "200px" }}
+                          >
+                            {hospital.address}
+                          </small>
+                        </div>
+                      </div>
+
+                      {/* Service Tags */}
+                      <div className="d-flex flex-wrap justify-content-center gap-1 mb-3">
+                        <span
+                          className="badge text-primary"
+                          style={{ background: "#f1f5f9", fontSize: "0.7rem" }}
+                        >
+                          Emergency Care
+                        </span>
+                        <span
+                          className="badge text-primary"
+                          style={{ background: "#f1f5f9", fontSize: "0.7rem" }}
+                        >
+                          Surgery
+                        </span>
+                        <span
+                          className="badge text-primary"
+                          style={{ background: "#f1f5f9", fontSize: "0.7rem" }}
+                        >
+                          Diagnostics
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      className="btn btn-primary w-100 d-flex align-items-center justify-content-center"
+                      style={{
+                        borderRadius: "8px",
+                        padding: "10px",
+                        transition: "all 0.2s ease",
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewDoctors(hospital);
+                      }}
+                    >
+                      <span className="me-2">👨‍⚕️</span>
+                      View Doctors
+                    </button>
+                  </div>
+
+                  {/* Card Footer */}
+                  <div
+                    className="card-footer border-0 d-flex align-items-center justify-content-between"
+                    style={{
+                      background: "#f8fafc",
+                      borderBottomLeftRadius: "12px",
+                      borderBottomRightRadius: "12px",
+                      padding: "12px 20px",
+                    }}
+                  >
+                    <div className="d-flex align-items-center">
+                      <div
+                        className="rounded-circle bg-success me-2"
+                        style={{ width: "8px", height: "8px" }}
+                      ></div>
+                      <small
+                        className="text-success fw-bold"
+                        style={{ fontSize: "0.8rem" }}
+                      >
+                        Available Now
+                      </small>
+                    </div>
+                    <small
+                      className="text-secondary"
+                      style={{ fontSize: "0.8rem" }}
+                    >
+                      Quick Booking ⚡
+                    </small>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Summary */}
+        <div className="text-center">
+          <p className="text-secondary" style={{ fontSize: "1rem" }}>
             Found{" "}
-            <span className="font-bold text-blue-600">
-              {allHospitals.length}
-            </span>{" "}
-            hospital{allHospitals.length !== 1 ? "s" : ""} available
+            <span className="fw-bold text-primary">{allHospitals.length}</span>{" "}
+            hospital{allHospitals.length !== 1 ? "s" : ""} available for
+            appointments
           </p>
         </div>
       </div>
