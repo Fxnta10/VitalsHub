@@ -32,8 +32,8 @@ export default function Navbar() {
           Home
         </NavLink>
 
-        <NavLink to="/hospitals" className={navLinkClass}>
-          Book Appointment
+        <NavLink to="/chatbot" className={navLinkClass}>
+          Quick Ask
         </NavLink>
         <NavLink to="/appointments" className={navLinkClass}>
           My Appointments

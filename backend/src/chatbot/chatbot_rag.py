@@ -1,428 +1,176 @@
 import os
+import re
 import certifi
+import tempfile
+import speech_recognition as sr
 from pymongo import MongoClient
 from bson.dbref import DBRef
-from bson.objectid import ObjectId
-from datetime import datetime, timedelta
-import uuid
+from bson import ObjectId
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_mongodb import MongoDBAtlasVectorSearch
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.prompts import PromptTemplate
-from langchain_groq import ChatGroq
-from langchain.schema import BaseMessage, HumanMessage, AIMessage
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from datetime import datetime, timedelta
+import uuid
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv()
 
-# Replace hardcoded credentials with environment variables
-MONGO_URI = os.getenv('MONGO_URI')
-GROQ_API_KEY = os.getenv('GROQ_API_KEY')
+OPENAI_API_KEY=os.getenv("OPENAI_API_KEY")
 
-if not MONGO_URI or not GROQ_API_KEY:
-    raise ValueError("Missing required environment variables. Please check .env file")
-
+# ------------------------------------------------------------------
+# 1. ENVIRONMENT & GLOBALS
+# ------------------------------------------------------------------
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
-embedding_model = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2"
-)
+MONGO_URI = "mongodb+srv://SIH25018DB:SIH25018@cluster0.k6z2tpt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 
+# ASR (input) via Whisper: Groq hosted or local
+ASR_BACKEND = os.getenv("ASR_BACKEND", "groq_whisper")  # "groq_whisper" or "local_whisper"
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_ASR_MODEL = os.getenv("GROQ_ASR_MODEL", "whisper-large-v3-turbo")
+ASR_LANGUAGE_HINT = os.getenv("ASR_LANGUAGE_HINT", None)  # e.g., "ta", "te", or None for auto
+
+# TTS (output) via ElevenLabs
+TTS_BACKEND = "elevenlabs"
+ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")  # set this in env
+ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "JBFqnCBsd6RMkjVDRZzb")  # pick from your account
+ELEVENLABS_MODEL_ID = os.getenv("ELEVENLABS_MODEL_ID", "eleven_multilingual_v2")  # multilingual model recommended
+
+AUDIO_SAMPLE_RATE = 16000
+AUDIO_CHANNELS = 1
+
+client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
+embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+
+# ------------------------------------------------------------------
+# 2. DATABASE / COLLECTION REFERENCES
+# ------------------------------------------------------------------
 hospital_db = client["rag_db"]
 hospital_collection = hospital_db["documents"]
-appointments_collection = hospital_db["appointments"]  # ✅ New collection for appointments
+appointments_collection = hospital_db["appointments"]  # Using existing appointments collection
 
-pharma_db = client["PharmaDB"]
+pharma_db = client["test"]
 medicines_collection = pharma_db["medicines"]
 pharmacies_collection = pharma_db["pharmacies"]
 
-
-hospital_memory = ConversationBufferWindowMemory(
-    k=10,
-    memory_key="chat_history",
-    output_key="answer",
-    return_messages=True
-)
-
-pharmacy_memory = ConversationBufferWindowMemory(
-    k=10,
-    memory_key="chat_history",
-    output_key="answer",
-    return_messages=True
-)
-
-class AppointmentBooking:
-    """Handle all appointment booking operations"""
-
-    @staticmethod
-    def book_appointment(doctor_id, patient_name, patient_phone, patient_email, appointment_date, appointment_time,
-                         reason="General consultation"):
-        """
-        Book an appointment with a doctor
-
-        Args:
-            doctor_id (str): MongoDB ObjectId of the doctor
-            patient_name (str): Patient's full name
-            patient_phone (str): Patient's phone number
-            patient_email (str): Patient's email address
-            appointment_date (str): Date in YYYY-MM-DD format
-            appointment_time (str): Time in HH:MM format
-            reason (str): Reason for appointment
-
-        Returns:
-            dict: Booking result with status and details
-        """
-        try:
-            if isinstance(doctor_id, str):
-                doctor_id = ObjectId(doctor_id)
-            doctor = hospital_collection.find_one({"_id": doctor_id})
-            if not doctor:
-                return {
-                    "success": False,
-                    "message": "Doctor not found",
-                    "appointment_id": None
-                }
-            is_available = doctor.get("isAvailable", True)
-            if not is_available:
-                return {
-                    "success": False,
-                    "message": f"Dr. {doctor.get('doctor_name', 'Unknown')} is currently not available for appointments",
-                    "appointment_id": None
-                }
-            try:
-                appointment_datetime = datetime.strptime(f"{appointment_date} {appointment_time}", "%Y-%m-%d %H:%M")
-            except ValueError:
-                return {
-                    "success": False,
-                    "message": "Invalid date or time format. Use YYYY-MM-DD for date and HH:MM for time",
-                    "appointment_id": None
-                }
-            if appointment_datetime <= datetime.now():
-                return {
-                    "success": False,
-                    "message": "Appointment must be scheduled for a future date and time",
-                    "appointment_id": None
-                }
-            existing_appointment = appointments_collection.find_one({
-                "doctor_id": doctor_id,
-                "appointment_datetime": appointment_datetime,
-                "status": {"$in": ["scheduled", "confirmed"]}
-            })
-
-            if existing_appointment:
-                return {
-                    "success": False,
-                    "message": f"Dr. {doctor.get('doctor_name', 'Unknown')} already has an appointment at {appointment_time} on {appointment_date}",
-                    "appointment_id": None
-                }
-
-            # Generate unique appointment ID
-            appointment_id = str(uuid.uuid4())[:8].upper()
-
-            # Create appointment document
-            appointment_doc = {
-                "appointment_id": appointment_id,
-                "doctor_id": doctor_id,
-                "doctor_name": doctor.get("doctor_name", "Unknown"),
-                "doctor_specialty": doctor.get("speciality", "General"),
-                "doctor_phone": doctor.get("phone", "N/A"),
-                "patient_name": patient_name,
-                "patient_phone": patient_phone,
-                "patient_email": patient_email,
-                "appointment_datetime": appointment_datetime,
-                "appointment_date": appointment_date,
-                "appointment_time": appointment_time,
-                "reason": reason,
-                "status": "scheduled",  # scheduled, confirmed, completed, cancelled
-                "created_at": datetime.now(),
-                "updated_at": datetime.now()
-            }
-
-            # Insert appointment
-            appointments_collection.insert_one(appointment_doc)
-
-            return {
-                "success": True,
-                "message": f"Appointment booked successfully! Appointment ID: {appointment_id}",
-                "appointment_id": appointment_id,
-                "doctor_name": doctor.get("doctor_name"),
-                "appointment_datetime": appointment_datetime.strftime("%B %d, %Y at %I:%M %p"),
-                "doctor_phone": doctor.get("phone")
-            }
-
-        except Exception as e:
-            return {
-                "success": False,
-                "message": f"Failed to book appointment: {str(e)}",
-                "appointment_id": None
-            }
-
-    @staticmethod
-    def cancel_appointment(appointment_id):
-        """Cancel an appointment by ID"""
-        try:
-            result = appointments_collection.update_one(
-                {"appointment_id": appointment_id, "status": {"$ne": "cancelled"}},
-                {
-                    "$set": {
-                        "status": "cancelled",
-                        "updated_at": datetime.now(),
-                        "cancelled_at": datetime.now()
-                    }
-                }
-            )
-
-            if result.matched_count > 0:
-                appointment = appointments_collection.find_one({"appointment_id": appointment_id})
-                return {
-                    "success": True,
-                    "message": f"Appointment {appointment_id} cancelled successfully",
-                    "appointment_details": appointment
-                }
-            else:
-                return {
-                    "success": False,
-                    "message": f"Appointment {appointment_id} not found or already cancelled"
-                }
-
-        except Exception as e:
-            return {
-                "success": False,
-                "message": f"Failed to cancel appointment: {str(e)}"
-            }
-
-    @staticmethod
-    def get_appointment_status(appointment_id):
-        """Get appointment details by ID"""
-        try:
-            appointment = appointments_collection.find_one({"appointment_id": appointment_id})
-
-            if appointment:
-                return {
-                    "success": True,
-                    "appointment": {
-                        "id": appointment["appointment_id"],
-                        "doctor_name": appointment["doctor_name"],
-                        "patient_name": appointment["patient_name"],
-                        "date_time": appointment["appointment_datetime"].strftime("%B %d, %Y at %I:%M %p"),
-                        "reason": appointment["reason"],
-                        "status": appointment["status"],
-                        "doctor_phone": appointment.get("doctor_phone", "N/A")
-                    }
-                }
-            else:
-                return {
-                    "success": False,
-                    "message": f"Appointment {appointment_id} not found"
-                }
-
-        except Exception as e:
-            return {
-                "success": False,
-                "message": f"Failed to retrieve appointment: {str(e)}"
-            }
-
-    @staticmethod
-    def get_doctor_availability(doctor_id, date):
-        """Check doctor's availability for a specific date"""
-        try:
-            if isinstance(doctor_id, str):
-                doctor_id = ObjectId(doctor_id)
-
-            doctor = hospital_collection.find_one({"_id": doctor_id})
-            if not doctor:
-                return {"success": False, "message": "Doctor not found"}
-
-            if not doctor.get("isAvailable", True):
-                return {
-                    "success": True,
-                    "available": False,
-                    "message": f"Dr. {doctor.get('doctor_name')} is currently not accepting appointments"
-                }
-
-            # Get existing appointments for the date
-            start_date = datetime.strptime(date, "%Y-%m-%d")
-            end_date = start_date + timedelta(days=1)
-
-            booked_slots = list(appointments_collection.find({
-                "doctor_id": doctor_id,
-                "appointment_datetime": {"$gte": start_date, "$lt": end_date},
-                "status": {"$in": ["scheduled", "confirmed"]}
-            }))
-
-            booked_times = [apt["appointment_time"] for apt in booked_slots]
-
-            # Define available time slots (9 AM to 5 PM, 1-hour slots)
-            available_slots = []
-            for hour in range(9, 17):  # 9 AM to 5 PM
-                time_slot = f"{hour:02d}:00"
-                if time_slot not in booked_times:
-                    available_slots.append(time_slot)
-
-            return {
-                "success": True,
-                "available": True,
-                "doctor_name": doctor.get("doctor_name"),
-                "date": date,
-                "available_slots": available_slots,
-                "booked_slots": booked_times
-            }
-
-        except Exception as e:
-            return {"success": False, "message": f"Error checking availability: {str(e)}"}
-
+# ------------------------------------------------------------------
+# 3. MEMORY SETUP
+# ------------------------------------------------------------------
+hospital_memory = ConversationBufferWindowMemory(k=10, memory_key="chat_history", output_key="answer", return_messages=True)
+pharmacy_memory = ConversationBufferWindowMemory(k=10, memory_key="chat_history", output_key="answer", return_messages=True)
 
 # ------------------------------------------------------------------
-# 5. DBREF RESOLUTION UTILITIES
+# 4. DBREF RESOLUTION & UTILITIES
 # ------------------------------------------------------------------
 def resolve_dbref(db_client, dbref_obj):
-    """Resolve a MongoDB DBRef to get the actual referenced document"""
     if not isinstance(dbref_obj, DBRef):
         return None
-
     try:
         database_name = dbref_obj.database or pharma_db.name
         collection_name = dbref_obj.collection
         ref_id = dbref_obj.id
-
         target_db = db_client[database_name]
         target_collection = target_db[collection_name]
-        referenced_doc = target_collection.find_one({"_id": ref_id})
-
-        return referenced_doc
-
+        return target_collection.find_one({"_id": ref_id})
     except Exception as e:
         print(f"Warning: Could not resolve DBRef: {e}")
         return None
 
-
-def get_safe_field_value(doc, possible_names, default="N/A"):
-    """Get field value using multiple possible field names"""
-    for name in possible_names:
-        if name in doc:
-            return doc[name]
-    return default
-
-
 def inspect_document_structure(collection, collection_name):
-    """Inspect and display the structure of documents in a collection"""
     print(f"\n🔍 Inspecting {collection_name} document structure...")
-
     sample_doc = collection.find_one()
     if not sample_doc:
         print(f"❌ No documents found in {collection_name}")
         return None
-
     print(f"📋 Available fields in {collection_name}:")
     for key, value in sample_doc.items():
         if isinstance(value, DBRef):
-            print(f"  • {key}: DBRef = DBRef('{value.collection}', ObjectId('{value.id}'))")
+            print(f"  • {key}: DBRef -> {value}")
         else:
-            print(f"  • {key}: {type(value).__name__} = {str(value)[:50]}...")
-
+            print(f"  • {key}: {type(value).__name__} = {str(value)[:60]}...")
     return sample_doc
 
+def get_safe_field_value(doc, possible_names, default="N/A"):
+    for name in possible_names:
+        if name in doc and doc[name] is not None:
+            return doc[name]
+    return default
 
 # ------------------------------------------------------------------
-# 6. EMBEDDING CREATION (same as before but with isAvailable info)
+# 5. EMBEDDING CREATION
 # ------------------------------------------------------------------
 def create_hospital_embeddings():
-    """Create embeddings for hospital/doctor documents with booking info"""
-    print("\n🏥 HOSPITAL DATA SETUP")
-    print("=" * 50)
-
-    sample_doc = inspect_document_structure(hospital_collection, "hospital/doctors")
+    print("\n🏥 HOSPITAL DATASET: creating/updating embeddings...")
+    sample_doc = inspect_document_structure(hospital_collection, "hospital/documents")
     if not sample_doc:
         return
-
     docs = list(hospital_collection.find())
-    print(f"\n🔄 Processing {len(docs)} hospital documents...")
-
+    print(f"🔄 Processing {len(docs)} hospital documents for embeddings...")
     for doc in docs:
-        doctor_name = get_safe_field_value(doc, [
-            'doctor_name', 'doctorName', 'name', 'fullName', 'full_name'
-        ])
-        specialty = get_safe_field_value(doc, [
-            'speciality', 'specialty', 'specialization', 'department'
-        ])
-        phone = get_safe_field_value(doc, [
-            'phone', 'phoneNumber', 'phone_number', 'contact', 'mobile'
-        ])
-        shift = get_safe_field_value(doc, [
-            'shift', 'working_hours', 'schedule', 'timing'
-        ])
-        hospital_name = get_safe_field_value(doc, [
-            'hospital_name', 'hospitalName', 'hospital', 'clinic'
-        ])
-        hospital_address = get_safe_field_value(doc, [
-            'hospital_address', 'hospitalAddress', 'address', 'location'
-        ])
-        is_available = doc.get('isAvailable', True)  # ✅ Get booking availability
-
-        # ✅ Include booking information in embeddings
-        availability_text = "Available for booking" if is_available else "Not available for booking"
-
+        doctor_name = get_safe_field_value(doc, ['doctor_name', 'doctorName', 'name', 'fullName', 'full_name'])
+        specialty = get_safe_field_value(doc, ['speciality', 'specialty', 'specialization', 'department'])
+        phone = get_safe_field_value(doc, ['phone', 'phoneNumber', 'phone_number', 'contact', 'mobile'])
+        shift = get_safe_field_value(doc, ['shift', 'working_hours', 'schedule', 'timing'])
+        hospital_name = get_safe_field_value(doc, ['hospital_name', 'hospitalName', 'hospital', 'clinic'])
+        hospital_address = get_safe_field_value(doc, ['hospital_address', 'hospitalAddress', 'address', 'location'])
+        is_available = doc.get("isAvailable", True)
         text_content = f"""Doctor: {doctor_name}
 Speciality: {specialty}
 Phone: {phone}
 Shift: {shift}
 Hospital: {hospital_name}
 Address: {hospital_address}
-Booking Status: {availability_text}
-Doctor ID: {str(doc['_id'])}"""
-
-        print(f"Processing: Dr. {doctor_name} ({specialty}) - {'✅ Available' if is_available else '❌ Not Available'}")
-        embedding = embedding_model.embed_query(text_content)
-
+Available: {is_available}"""
+        try:
+            embedding = embedding_model.embed_query(text_content)
+        except Exception as e:
+            print(f"  ⚠️ Embedding failed for {doctor_name}: {e}")
+            embedding = []
         hospital_collection.update_one(
             {"_id": doc["_id"]},
             {"$set": {"text": text_content, "embeddings": embedding}}
         )
-
-    print("✅ All hospital documents updated with embeddings and booking info!")
-
+        print(f"  ✓ Updated embeddings for: {doctor_name}")
+    print("✅ Hospital embeddings updated.")
 
 def create_pharmacy_embeddings():
-    """Create embeddings for medicine documents with DBRef resolution (same as before)"""
-    print("\n💊 PHARMACY DATA SETUP")
-    print("=" * 50)
-
+    print("\n💊 PHARMACY DATASET: creating/updating embeddings...")
     sample_doc = inspect_document_structure(medicines_collection, "medicines")
     if not sample_doc:
         return
-
     docs = list(medicines_collection.find())
-    print(f"\n🔄 Processing {len(docs)} medicine documents...")
-
+    print(f"🔄 Processing {len(docs)} medicine documents for embeddings...")
     for doc in docs:
-        # Extract medicine fields (same logic as before)
-        medicine_name = get_safe_field_value(doc, ['name', 'medicine_name', 'medicineName'])
-        generic_name = get_safe_field_value(doc, ['genericName', 'generic_name'])
-        description = get_safe_field_value(doc, ['description', 'details'])
-        dosage_form = get_safe_field_value(doc, ['dosageForm', 'dosage_form'])
-        manufacturer = get_safe_field_value(doc, ['manufacturer', 'company'])
-        quantity = get_safe_field_value(doc, ['quantity', 'qty'])
-        expiry_date = get_safe_field_value(doc, ['expiryDate', 'expiry_date'])
-        prescription_required = get_safe_field_value(doc, ['prescriptionRequired'])
-
-        # Resolve pharmacy DBRef (same logic as before)
+        medicine_name = get_safe_field_value(doc, ['name', 'medicine_name', 'medicineName', 'drug_name'])
+        generic_name = get_safe_field_value(doc, ['genericName', 'generic_name', 'generic', 'composition'])
+        description = get_safe_field_value(doc, ['description', 'details', 'info', 'about'])
+        dosage_form = get_safe_field_value(doc, ['dosageForm', 'dosage_form', 'form', 'type'])
+        manufacturer = get_safe_field_value(doc, ['manufacturer', 'company', 'brand', 'mfg'])
+        quantity = get_safe_field_value(doc, ['quantity', 'qty', 'stock', 'available'])
+        expiry_date = get_safe_field_value(doc, ['expiryDate', 'expiry_date', 'expiry', 'exp_date'])
+        prescription_required = get_safe_field_value(doc, ['prescriptionRequired', 'prescription_required', 'prescription'])
         pharmacy_text = ""
         if 'pharmacy' in doc and isinstance(doc['pharmacy'], DBRef):
             pharmacy_doc = resolve_dbref(client, doc['pharmacy'])
             if pharmacy_doc:
-                pharmacy_name = get_safe_field_value(pharmacy_doc, ['name', 'pharmacyName'])
-                contact = get_safe_field_value(pharmacy_doc, ['contactNumber', 'phone'])
-                address = get_safe_field_value(pharmacy_doc, ['address'])
-
-                pharmacy_text = f"""
-Pharmacy Name: {pharmacy_name}
-Contact: {contact}
-Address: {address}
-"""
-
+                pharmacy_name = get_safe_field_value(pharmacy_doc, ['name', 'pharmacy_name', 'pharmacyName'])
+                contact_number = get_safe_field_value(pharmacy_doc, ['contactNumber', 'contact_number', 'phone', 'mobile'])
+                address = get_safe_field_value(pharmacy_doc, ['address', 'location', 'addr'])
+                pharmacy_text = f"Pharmacy: {pharmacy_name}\nContact: {contact_number}\nAddress: {address}"
+        elif 'pharmacy' in doc:
+            try:
+                pharmacy_id = doc['pharmacy']
+                pharmacy_doc = pharmacies_collection.find_one({"_id": pharmacy_id})
+                if pharmacy_doc:
+                    pharmacy_name = get_safe_field_value(pharmacy_doc, ['name', 'pharmacy_name', 'pharmacyName'])
+                    contact_number = get_safe_field_value(pharmacy_doc, ['contactNumber', 'phone'])
+                    address = get_safe_field_value(pharmacy_doc, ['address', 'location'])
+                    pharmacy_text = f"Pharmacy: {pharmacy_name}\nContact: {contact_number}\nAddress: {address}"
+            except Exception:
+                pharmacy_text = ""
         text_content = f"""Medicine: {medicine_name}
 Generic Name: {generic_name}
 Description: {description}
@@ -431,36 +179,597 @@ Manufacturer: {manufacturer}
 Quantity: {quantity}
 Expiry Date: {expiry_date}
 Prescription Required: {prescription_required}
-{pharmacy_text}
-"""
-
-        print(f"Processing: {medicine_name}")
-        embedding = embedding_model.embed_query(text_content)
-
+{pharmacy_text}"""
+        try:
+            embedding = embedding_model.embed_query(text_content)
+        except Exception as e:
+            print(f"  ⚠️ Embedding failed for {medicine_name}: {e}")
+            embedding = []
         medicines_collection.update_one(
             {"_id": doc["_id"]},
             {"$set": {"text": text_content, "embeddings": embedding}}
         )
-
-    print("✅ All medicine documents updated with embeddings and pharmacy data!")
-
+        print(f"  ✓ Updated embeddings for: {medicine_name}")
+    print("✅ Medicine embeddings updated.")
 
 # ------------------------------------------------------------------
-# 7. ENHANCED RAG SYSTEMS WITH BOOKING CAPABILITY
+# 6. ENHANCED BOOKING SYSTEM USING EXISTING APPOINTMENTS COLLECTION
+# ------------------------------------------------------------------
+class PatientBookingSystem:
+    def __init__(self):
+        self.booking_data = {}
+        self.current_booking_step = 0
+        self.booking_steps = [
+            'doctor_selection',
+            'patient_name', 
+            'patient_phone',
+            'patient_email',
+            'appointment_reason',
+            'preferred_date',
+            'time_selection',
+            'confirmation'
+        ]
+    
+    def reset_booking(self):
+        """Reset booking session"""
+        self.booking_data = {}
+        self.current_booking_step = 0
+    
+    def collect_booking_details(self, user_input, detected_lang=None):
+        """Conversational booking flow using existing appointments collection"""
+        step = self.booking_steps[self.current_booking_step]
+        
+        if step == 'doctor_selection':
+            return self.handle_doctor_selection(user_input)
+        elif step == 'patient_name':
+            return self.handle_patient_name(user_input)
+        elif step == 'patient_phone':
+            return self.handle_patient_phone(user_input)
+        elif step == 'patient_email':
+            return self.handle_patient_email(user_input)
+        elif step == 'appointment_reason':
+            return self.handle_appointment_reason(user_input)
+        elif step == 'preferred_date':
+            return self.handle_preferred_date(user_input)
+        elif step == 'time_selection':
+            return self.handle_time_selection(user_input)
+        elif step == 'confirmation':
+            return self.handle_confirmation(user_input)
+    
+    def handle_doctor_selection(self, user_input):
+        """Extract and validate doctor selection"""
+        doctor_name = None
+        
+        # Extract doctor name patterns
+        patterns = [
+            r"(?:dr\.?\s*|doctor\s+)([a-zA-Z\s\.]+)",
+            r"with\s+([a-zA-Z\s\.]+)",
+            r"appointment\s+with\s+([a-zA-Z\s\.]+)"
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, user_input, re.IGNORECASE)
+            if match:
+                doctor_name = match.group(1).strip()
+                break
+        
+        if not doctor_name:
+            return "I'd be happy to help you book an appointment! Could you please tell me which doctor you'd like to see? For example: 'Dr. Sudeep Kumar' or 'Dr. Manoj Joshi'."
+        
+        # Find doctor in hospital collection
+        doctor_doc = find_doctor_doc_by_name(doctor_name)
+        if not doctor_doc:
+            return f"I couldn't find a doctor named '{doctor_name}' in our system. Could you please check the spelling or try a different doctor's name?"
+        
+        # Check if doctor has available slots by looking at existing appointments
+        doctor_full_name = get_safe_field_value(doctor_doc, ['doctor_name', 'name', 'full_name'])
+        today = datetime.now().date()
+        
+        # Count appointments for this doctor today and in the next few days
+        recent_appointments = appointments_collection.count_documents({
+            "doctor_name": doctor_full_name,
+            "status": "scheduled",
+            "appointment_date": {"$gte": today.strftime("%Y-%m-%d")}
+        })
+        
+        self.booking_data['doctor'] = doctor_doc
+        self.current_booking_step += 1
+        
+        specialty = get_safe_field_value(doctor_doc, ['speciality', 'specialty', 'specialization'])
+        return f"Great! I found {doctor_full_name}, {specialty}. Now I need to collect some information from you. What's your full name?"
+    
+    def handle_patient_name(self, user_input):
+        """Collect patient's full name"""
+        name = user_input.strip()
+        if len(name) < 2:
+            return "Please provide your full name (first and last name)."
+        
+        self.booking_data['patient_name'] = name
+        self.current_booking_step += 1
+        return f"Thank you, {name}. What's your phone number?"
+    
+    def handle_patient_phone(self, user_input):
+        """Collect and validate phone number"""
+        phone = re.sub(r'[^\d+\-\s\(\)]', '', user_input.strip())
+        
+        if len(re.sub(r'[^\d]', '', phone)) < 10:
+            return "Please provide a valid phone number (at least 10 digits)."
+        
+        self.booking_data['patient_phone'] = phone
+        self.current_booking_step += 1
+        return "Perfect! What's your email address?"
+    
+    def handle_patient_email(self, user_input):
+        """Collect and validate email"""
+        email = user_input.strip()
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        
+        if not re.match(email_pattern, email):
+            return "Please provide a valid email address (e.g., example@email.com)."
+        
+        self.booking_data['patient_email'] = email
+        self.current_booking_step += 1
+        return "Great! Could you briefly tell me the reason for your visit or any specific concerns?"
+    
+    def handle_appointment_reason(self, user_input):
+        """Collect reason for appointment"""
+        reason = user_input.strip()
+        if len(reason) < 3:
+            return "Please provide a brief reason for your visit (e.g., 'regular checkup', 'chest pain', 'consultation')."
+        
+        self.booking_data['appointment_reason'] = reason
+        self.current_booking_step += 1
+        return "Thank you. When would you prefer to have your appointment? You can say 'tomorrow', 'next week', or a specific date like 'September 25th'."
+    
+    def handle_preferred_date(self, user_input):
+        """Parse date preference and show available dates"""
+        date_input = user_input.strip().lower()
+        self.booking_data['preferred_date_input'] = date_input
+        
+        # Parse common date expressions
+        target_date = self.parse_date_expression(date_input)
+        
+        if not target_date:
+            return "I couldn't understand that date. Please try saying 'tomorrow', 'next Monday', or a specific date like 'September 25th'."
+        
+        # Check availability for that doctor on the requested date
+        doctor_name = get_safe_field_value(self.booking_data['doctor'], ['doctor_name', 'name', 'full_name'])
+        
+        existing_appointments = list(appointments_collection.find({
+            "doctor_name": doctor_name,
+            "appointment_date": target_date.strftime("%Y-%m-%d"),
+            "status": {"$in": ["scheduled", "confirmed"]}
+        }))
+        
+        # Generate available time slots (excluding booked ones)
+        all_slots = ["09:00", "10:00", "11:00", "14:00", "15:00", "16:00", "17:00"]
+        booked_times = [apt.get("appointment_time", "").split(":")[0] + ":00" 
+                       for apt in existing_appointments if apt.get("appointment_time")]
+        
+        available_slots = [slot for slot in all_slots if slot not in booked_times]
+        
+        if not available_slots:
+            next_date = target_date + timedelta(days=1)
+            return f"Sorry, {doctor_name} has no available slots on {target_date.strftime('%B %d, %Y')}. Would you like to try {next_date.strftime('%B %d, %Y')} instead?"
+        
+        self.booking_data['appointment_date'] = target_date
+        slots_text = "\n".join([f"• {slot}" for slot in available_slots])
+        
+        self.current_booking_step += 1
+        return f"Available time slots for {target_date.strftime('%B %d, %Y')}:\n\n{slots_text}\n\nWhich time would you prefer?"
+    
+    def handle_time_selection(self, user_input):
+        """Handle time slot selection"""
+        time_input = user_input.strip()
+        
+        # Extract time from input
+        time_pattern = r'(\d{1,2}):?(\d{0,2})\s*(am|pm)?'
+        match = re.search(time_pattern, time_input.lower())
+        
+        if match:
+            hour = int(match.group(1))
+            minute = match.group(2) or "00"
+            period = match.group(3)
+            
+            if period == "pm" and hour < 12:
+                hour += 12
+            elif period == "am" and hour == 12:
+                hour = 0
+            
+            selected_time = f"{hour:02d}:{minute}"
+        else:
+            # Try to match common time formats
+            time_mappings = {
+                "9": "09:00", "10": "10:00", "11": "11:00",
+                "2": "14:00", "3": "15:00", "4": "16:00", "5": "17:00"
+            }
+            selected_time = time_mappings.get(time_input.strip())
+        
+        if not selected_time:
+            return "Please specify a time like '10:00 AM', '2:30 PM', or just '10' for 10 AM."
+        
+        self.booking_data['appointment_time'] = selected_time
+        self.current_booking_step += 1
+        
+        # Show confirmation details
+        doctor_name = get_safe_field_value(self.booking_data['doctor'], ['doctor_name', 'name', 'full_name'])
+        specialty = get_safe_field_value(self.booking_data['doctor'], ['speciality', 'specialty'])
+        date_str = self.booking_data['appointment_date'].strftime('%B %d, %Y')
+        
+        confirmation_text = f"""
+📋 Please confirm your appointment details:
+
+• Patient: {self.booking_data['patient_name']}
+• Doctor: {doctor_name} ({specialty})
+• Date: {date_str}
+• Time: {selected_time}
+• Reason: {self.booking_data['appointment_reason']}
+• Phone: {self.booking_data['patient_phone']}
+• Email: {self.booking_data['patient_email']}
+
+Type 'YES' to confirm or 'NO' to cancel.
+        """
+        
+        return confirmation_text.strip()
+    
+    def handle_confirmation(self, user_input):
+        """Handle final confirmation"""
+        response = user_input.strip().lower()
+        
+        if response in ['yes', 'y', 'confirm', 'ok']:
+            # Create appointment in existing collection
+            appointment_id = self.create_appointment_record()
+            
+            if appointment_id:
+                doctor_name = get_safe_field_value(self.booking_data['doctor'], ['doctor_name', 'name', 'full_name'])
+                date_str = self.booking_data['appointment_date'].strftime('%B %d, %Y')
+                time_str = self.booking_data['appointment_time']
+                
+                confirmation_msg = f"""
+✅ APPOINTMENT CONFIRMED!
+
+📋 Appointment Details:
+• Appointment ID: {appointment_id}
+• Patient: {self.booking_data['patient_name']}
+• Doctor: {doctor_name}
+• Date & Time: {date_str} at {time_str}
+• Reason: {self.booking_data['appointment_reason']}
+
+📱 You will receive a confirmation SMS and email shortly.
+📞 For changes, please call us at least 24 hours in advance.
+
+Thank you for choosing our healthcare services!
+                """
+                
+                self.reset_booking()
+                return confirmation_msg.strip()
+            else:
+                return "❌ Sorry, there was an error creating your appointment. Please try again or contact our support team."
+        
+        elif response in ['no', 'n', 'cancel']:
+            self.reset_booking()
+            return "❌ Appointment cancelled. Is there anything else I can help you with?"
+        
+        else:
+            return "Please type 'YES' to confirm your appointment or 'NO' to cancel."
+    
+    def parse_date_expression(self, date_input):
+        """Parse various date expressions"""
+        today = datetime.now().date()
+        
+        if "tomorrow" in date_input:
+            return today + timedelta(days=1)
+        elif "next week" in date_input:
+            return today + timedelta(days=7)
+        elif "monday" in date_input:
+            days_ahead = 0 - today.weekday()
+            if days_ahead <= 0:
+                days_ahead += 7
+            return today + timedelta(days=days_ahead)
+        elif "tuesday" in date_input:
+            days_ahead = 1 - today.weekday()
+            if days_ahead <= 0:
+                days_ahead += 7
+            return today + timedelta(days=days_ahead)
+        elif "wednesday" in date_input:
+            days_ahead = 2 - today.weekday()
+            if days_ahead <= 0:
+                days_ahead += 7
+            return today + timedelta(days=days_ahead)
+        elif "thursday" in date_input:
+            days_ahead = 3 - today.weekday()
+            if days_ahead <= 0:
+                days_ahead += 7
+            return today + timedelta(days=days_ahead)
+        elif "friday" in date_input:
+            days_ahead = 4 - today.weekday()
+            if days_ahead <= 0:
+                days_ahead += 7
+            return today + timedelta(days=days_ahead)
+        elif "saturday" in date_input:
+            days_ahead = 5 - today.weekday()
+            if days_ahead <= 0:
+                days_ahead += 7
+            return today + timedelta(days=days_ahead)
+        elif "sunday" in date_input:
+            days_ahead = 6 - today.weekday()
+            if days_ahead <= 0:
+                days_ahead += 7
+            return today + timedelta(days=days_ahead)
+        
+        # Try to parse specific dates (basic implementation)
+        try:
+            # Handle formats like "September 25" or "25th"
+            import dateutil.parser
+            parsed_date = dateutil.parser.parse(date_input, default=datetime.now()).date()
+            if parsed_date >= today:
+                return parsed_date
+        except:
+            pass
+        
+        return None
+    
+    def create_appointment_record(self):
+        """Create appointment record in existing appointments collection"""
+        try:
+            doctor = self.booking_data['doctor']
+            appointment_id = str(uuid.uuid4())[:8].upper()
+            
+            # Create appointment record matching your existing structure
+            appointment_record = {
+                "appointment_id": appointment_id,
+                "doctor_id": ObjectId(doctor['_id']),
+                "doctor_name": get_safe_field_value(doctor, ['doctor_name', 'name', 'full_name']),
+                "doctor_specialty": get_safe_field_value(doctor, ['speciality', 'specialty', 'specialization']),
+                "doctor_phone": get_safe_field_value(doctor, ['phone', 'phoneNumber', 'contact']),
+                "patient_name": self.booking_data['patient_name'],
+                "patient_phone": self.booking_data['patient_phone'],
+                "patient_email": self.booking_data['patient_email'],
+                "appointment_datetime": f"{self.booking_data['appointment_date']}T{self.booking_data['appointment_time']}:00.000+00:00",
+                "appointment_date": self.booking_data['appointment_date'].strftime('%Y-%m-%d'),
+                "appointment_time": self.booking_data['appointment_time'],
+                "reason": self.booking_data['appointment_reason'],
+                "status": "scheduled",
+                "created_at": datetime.now(),
+                "updated_at": datetime.now()
+            }
+            
+            # Insert into existing appointments collection
+            result = appointments_collection.insert_one(appointment_record)
+            
+            if result.inserted_id:
+                print(f"✅ Appointment created with ID: {appointment_id}")
+                return appointment_id
+            else:
+                print("❌ Failed to create appointment")
+                return None
+                
+        except Exception as e:
+            print(f"❌ Error creating appointment: {e}")
+            return None
+
+# Initialize booking system
+booking_system = PatientBookingSystem()
+
+# ------------------------------------------------------------------
+# 7. DOCTOR LOOKUP FUNCTIONS
+# ------------------------------------------------------------------
+def find_doctor_doc_by_name(name):
+    if not name:
+        return None
+    fields = ['doctor_name', 'doctorName', 'name', 'fullName', 'full_name']
+    for f in fields:
+        doc = hospital_collection.find_one({f: name})
+        if doc:
+            return doc
+    for f in fields:
+        doc = hospital_collection.find_one({f: {"$regex": re.escape(name), "$options": "i"}})
+        if doc:
+            return doc
+    return None
+
+def book_doctor_appointment(doctor_name):
+    try:
+        doc = find_doctor_doc_by_name(doctor_name)
+        if not doc:
+            return f"❌ Doctor '{doctor_name}' not found."
+        if not doc.get("isAvailable", True):
+            found_name = get_safe_field_value(doc, ['doctor_name', 'name', 'full_name'])
+            return f"⚠️ Doctor {found_name} is already booked."
+        hospital_collection.update_one({"_id": doc["_id"]}, {"$set": {"isAvailable": False}})
+        found_name = get_safe_field_value(doc, ['doctor_name', 'name', 'full_name'])
+        return f"✅ Appointment booked successfully with {found_name}!"
+    except Exception as e:
+        return f"❌ Booking failed: {e}"
+
+def handle_booking_conversation(user_query, detected_lang=None):
+    """Handle conversational booking flow using existing appointments collection"""
+    
+    # Check if this is the start of a new booking
+    if booking_system.current_booking_step == 0:
+        if not any(keyword in user_query.lower() for keyword in ['book', 'appointment', 'schedule']):
+            return None
+    
+    # Process the booking conversation
+    response = booking_system.collect_booking_details(user_query, detected_lang)
+    return response
+
+# ------------------------------------------------------------------
+# 8. APPOINTMENT MANAGEMENT FUNCTIONS
+# ------------------------------------------------------------------
+def get_patient_appointments(patient_phone):
+    """Retrieve appointments for a patient"""
+    try:
+        appointments = list(appointments_collection.find({
+            "patient_phone": patient_phone,
+            "status": {"$in": ["scheduled", "confirmed"]}
+        }).sort("appointment_datetime", 1))
+        
+        return appointments
+    except Exception as e:
+        print(f"❌ Error retrieving appointments: {e}")
+        return []
+
+def cancel_appointment(appointment_id):
+    """Cancel an existing appointment"""
+    try:
+        result = appointments_collection.update_one(
+            {"appointment_id": appointment_id},
+            {"$set": {"status": "cancelled", "updated_at": datetime.now()}}
+        )
+        
+        return result.modified_count > 0
+    except Exception as e:
+        print(f"❌ Error cancelling appointment: {e}")
+        return False
+
+def check_appointment_status(query):
+    """Check appointment status based on user query"""
+    # Extract phone number or appointment ID from query
+    phone_match = re.search(r'(\d{10,})', query)
+    id_match = re.search(r'([A-F0-9]{8})', query.upper())
+    
+    if phone_match:
+        phone = phone_match.group(1)
+        appointments = get_patient_appointments(phone)
+        if appointments:
+            apt_list = []
+            for apt in appointments:
+                date = apt.get('appointment_date', 'N/A')
+                time = apt.get('appointment_time', 'N/A')
+                doctor = apt.get('doctor_name', 'N/A')
+                apt_list.append(f"• {apt.get('appointment_id')}: {doctor} on {date} at {time}")
+            return f"Your appointments:\n" + "\n".join(apt_list)
+        else:
+            return "No scheduled appointments found for this phone number."
+    
+    elif id_match:
+        apt_id = id_match.group(1)
+        appointment = appointments_collection.find_one({"appointment_id": apt_id})
+        if appointment:
+            return f"Appointment {apt_id}: {appointment.get('doctor_name')} on {appointment.get('appointment_date')} at {appointment.get('appointment_time')} - Status: {appointment.get('status')}"
+        else:
+            return f"No appointment found with ID {apt_id}"
+    
+    return "Please provide your phone number or appointment ID to check status."
+
+# ------------------------------------------------------------------
+# 9. SPEECH: ASR (Whisper) + TTS (ElevenLabs)
+# ------------------------------------------------------------------
+def record_to_wav(tmp_path=None, sample_rate=AUDIO_SAMPLE_RATE):
+    recognizer = sr.Recognizer()
+    mic = sr.Microphone(sample_rate=sample_rate)
+    print("🎤 Listening... (speak now)")
+    with mic as source:
+        recognizer.adjust_for_ambient_noise(source, duration=0.8)
+        audio = recognizer.listen(source)
+    wav_bytes = audio.get_wav_data(convert_rate=sample_rate, convert_width=2)
+    if not tmp_path:
+        tmp_fd, tmp_path = tempfile.mkstemp(suffix=".wav")
+        os.close(tmp_fd)
+    with open(tmp_path, "wb") as f:
+        f.write(wav_bytes)
+    return tmp_path
+
+def transcribe_with_groq_whisper(wav_path, model=GROQ_ASR_MODEL, language_hint=ASR_LANGUAGE_HINT):
+    import requests
+    url = "https://api.groq.com/openai/v1/audio/transcriptions"
+    headers = {"Authorization": f"Bearer {GROQ_API_KEY}"}
+    data = {"model": model}
+    if language_hint:
+        data["language"] = language_hint
+    files = {"file": (os.path.basename(wav_path), open(wav_path, "rb"), "audio/wav")}
+    try:
+        resp = requests.post(url, headers=headers, data=data, files=files, timeout=60)
+        if resp.status_code == 200:
+            out = resp.json()
+            text = (out.get("text") or "").strip()
+            detected_lang = out.get("language")
+            return text, detected_lang
+        else:
+            print(f"❌ Groq ASR error {resp.status_code}: {resp.text}")
+            return "", None
+    except Exception as e:
+        print(f"❌ Groq ASR exception: {e}")
+        return "", None
+
+def transcribe_with_local_whisper(wav_path, language_hint=ASR_LANGUAGE_HINT):
+    try:
+        import whisper
+        model = whisper.load_model("large-v3")
+        result = model.transcribe(wav_path, language=language_hint)
+        text = (result.get("text") or "").strip()
+        detected_lang = result.get("language")
+        return text, detected_lang
+    except Exception as e:
+        print(f"❌ Local Whisper error: {e}")
+        return "", None
+
+def detect_lang_for_tts(detected_lang, fallback_hint=ASR_LANGUAGE_HINT, default="en"):
+    for code in [detected_lang, fallback_hint]:
+        if not code:
+            continue
+        c = code.lower()
+        if len(c) >= 2:
+            return c[:2]
+    return default
+
+# ----- ElevenLabs TTS -----
+def tts_with_elevenlabs(text, lang2="en"):
+    """
+    ElevenLabs SDK streaming playback for low-latency natural speech.
+    Requires: pip install elevenlabs and ELEVENLABS_API_KEY in env.
+    """
+    try:
+        from elevenlabs import stream
+        from elevenlabs.client import ElevenLabs
+
+        # Use API key from env automatically if not passed here
+        client = ElevenLabs(api_key=ELEVENLABS_API_KEY if ELEVENLABS_API_KEY else None)
+
+        # Stream audio and play progressively
+        audio_stream = client.text_to_speech.stream(
+            voice_id=ELEVENLABS_VOICE_ID,
+            text=text,
+            model_id=ELEVENLABS_MODEL_ID
+        )
+        stream(audio_stream)
+    except Exception as e:
+        print(f"❌ ElevenLabs TTS error: {e}")
+
+def speak_text(text, detected_lang=None):
+    lang2 = detect_lang_for_tts(detected_lang)
+    if TTS_BACKEND == "elevenlabs":
+        tts_with_elevenlabs(text, lang2=lang2)
+    else:
+        print("(TTS disabled or unsupported backend)")
+
+def listen_to_voice():
+    wav_path = record_to_wav()
+    if ASR_BACKEND == "groq_whisper":
+        text, detected_lang = transcribe_with_groq_whisper(wav_path)
+    elif ASR_BACKEND == "local_whisper":
+        text, detected_lang = transcribe_with_local_whisper(wav_path)
+    else:
+        print("⚠️ No ASR backend configured")
+        return "", None
+    if text:
+        print(f"🗣️ You said: {text}")
+    return text, detected_lang
+
+# ------------------------------------------------------------------
+# 10. CONVERSATIONAL RAG SYSTEMS
 # ------------------------------------------------------------------
 def create_hospital_rag_system():
-    """Create hospital RAG system with booking functionality"""
     try:
         vectorstore = MongoDBAtlasVectorSearch(
             collection=hospital_collection,
             embedding=embedding_model,
-            index_name="vector_index",
+            index_name="hospital_vector_index",
             text_key="text",
             embedding_key="embeddings",
         )
-
-        llm = ChatGroq(model="gemma2-9b-it", api_key=GROQ_API_KEY)
-
+        llm = ChatOpenAI(model="gpt-4o-mini", api_key=OPENAI_API_KEY)
         qa_chain = ConversationalRetrievalChain.from_llm(
             llm=llm,
             retriever=vectorstore.as_retriever(search_kwargs={"k": 3}),
@@ -469,47 +778,25 @@ def create_hospital_rag_system():
             verbose=False,
             combine_docs_chain_kwargs={
                 "prompt": PromptTemplate(
-                    template="""You are a helpful hospital assistant with appointment booking capabilities. Use the doctor information and chat history to answer questions naturally.
-
+                    template="""ou are a helpful pharmacy assistant. Use chat history + context. Give answer in short laymam terms so the everybody can understand
 Chat History:
 {chat_history}
-
-Doctor Information:
+Doctor Info:
 {context}
-
-Current Question: {question}
-
-Instructions:
-- Use the chat history to understand context and provide personalized responses
-- Provide specific doctor names, specialties, phone numbers, and availability status
-- For booking requests, clearly explain the booking process
-- Include Doctor ID when mentioning doctors for booking purposes
-- Mention if doctors are "Available for booking" or "Not available for booking"
-- Guide users on how to book appointments using commands like "book appointment with Dr. [Name]"
-- Be helpful and professional
-
-IMPORTANT BOOKING COMMANDS TO MENTION:
-- To book: "book appointment with Dr. [Doctor Name] on [YYYY-MM-DD] at [HH:MM]"
-- To check: "check appointment status [APPOINTMENT_ID]"
-- To cancel: "cancel appointment [APPOINTMENT_ID]"
-- Patient details will be collected during booking process
-
+Question: {question}
 Answer:""",
                     input_variables=["chat_history", "context", "question"]
                 )
+                
             }
         )
-
-        print("✅ Hospital RAG system with booking capability created!")
+        print("✅ Hospital RAG system created.")
         return qa_chain, vectorstore
-
     except Exception as e:
-        print(f"❌ Hospital RAG system creation failed: {e}")
+        print(f"❌ Hospital RAG creation failed: {e}")
         return None, None
 
-
 def create_pharmacy_rag_system():
-    """Create pharmacy RAG system (same as before)"""
     try:
         vectorstore = MongoDBAtlasVectorSearch(
             collection=medicines_collection,
@@ -518,9 +805,7 @@ def create_pharmacy_rag_system():
             text_key="text",
             embedding_key="embeddings",
         )
-
-        llm = ChatGroq(model="gemma2-9b-it", api_key=GROQ_API_KEY)
-
+        llm = ChatOpenAI(model="gpt-4o-mini", api_key=OPENAI_API_KEY)
         qa_chain = ConversationalRetrievalChain.from_llm(
             llm=llm,
             retriever=vectorstore.as_retriever(search_kwargs={"k": 3}),
@@ -529,322 +814,183 @@ def create_pharmacy_rag_system():
             verbose=False,
             combine_docs_chain_kwargs={
                 "prompt": PromptTemplate(
-                    template="""You are a helpful pharmacy assistant. Use the medicine/pharmacy information and chat history to answer questions naturally.
-
+                    template="""You are a helpful pharmacy assistant. Use chat history + context. Give answer in short laymam terms so the everybody can understand
 Chat History:
 {chat_history}
-
-Medicine & Pharmacy Information:
+Medicine & Pharmacy Info:
 {context}
-
-Current Question: {question}
-
-Guidelines:
-- Use chat history to provide personalized responses
-- Provide complete medicine details and pharmacy information
-- Include contact details and addresses when available
-- Be helpful and professional
-
+Question: {question}
 Answer:""",
                     input_variables=["chat_history", "context", "question"]
                 )
             }
         )
-
-        print("✅ Pharmacy RAG system created successfully!")
+        print("✅ Pharmacy RAG system created.")
         return qa_chain, vectorstore
-
     except Exception as e:
-        print(f"❌ Pharmacy RAG system creation failed: {e}")
+        print(f"❌ Pharmacy RAG creation failed: {e}")
         return None, None
 
-
 # ------------------------------------------------------------------
-# 8. BOOKING COMMAND PROCESSOR
+# 11. DEBUG HELPERS
 # ------------------------------------------------------------------
-def process_booking_command(query):
-    """Process booking-related commands"""
-    query_lower = query.lower().strip()
-
-    # Book appointment command
-    if query_lower.startswith("book appointment"):
-        return handle_appointment_booking(query)
-
-    # Check appointment status
-    elif query_lower.startswith("check appointment"):
-        return handle_appointment_check(query)
-
-    # Cancel appointment
-    elif query_lower.startswith("cancel appointment"):
-        return handle_appointment_cancellation(query)
-
-    # Check doctor availability
-    elif "availability" in query_lower or "available" in query_lower:
-        return handle_availability_check(query)
-
-    return None
-
-
-def handle_appointment_booking(query):
-    """Handle appointment booking command"""
-    try:
-
-        print("\n📋 APPOINTMENT BOOKING PROCESS")
-        print("=" * 40)
-
-        patient_name = input("👤 Enter your full name: ").strip()
-        if not patient_name:
-            return "❌ Name is required for booking"
-
-        patient_phone = input("📞 Enter your phone number: ").strip()
-        if not patient_phone:
-            return "❌ Phone number is required for booking"
-
-        patient_email = input("📧 Enter your email address: ").strip()
-        if not patient_email:
-            return "❌ Email address is required for booking"
-        doctor_name = None
-        if "dr." in query.lower():
-            parts = query.lower().split("dr.")
-            if len(parts) > 1:
-                name_part = parts[1].split(" on ")[0].strip()
-                doctor_name = name_part
-
-        if not doctor_name:
-            return "❌ Please specify the doctor's name in format: 'book appointment with Dr. [Name] on [Date] at [Time]'"
-        doctor = hospital_collection.find_one({
-            "$or": [
-                {"doctor_name": {"$regex": doctor_name, "$options": "i"}},
-                {"name": {"$regex": doctor_name, "$options": "i"}}
-            ]
-        })
-
-        if not doctor:
-            return f"❌ Doctor '{doctor_name}' not found. Please check the spelling and try again."
-
-        appointment_date = input("📅 Enter appointment date (YYYY-MM-DD): ").strip()
-        appointment_time = input("⏰ Enter appointment time (HH:MM, 24-hour format): ").strip()
-        reason = input("🏥 Reason for appointment (optional): ").strip() or "General consultation"
-
-        result = AppointmentBooking.book_appointment(
-            doctor_id=doctor["_id"],
-            patient_name=patient_name,
-            patient_phone=patient_phone,
-            patient_email=patient_email,
-            appointment_date=appointment_date,
-            appointment_time=appointment_time,
-            reason=reason
-        )
-
-        if result["success"]:
-            return f"""✅ APPOINTMENT BOOKED SUCCESSFULLY!
-
-📋 Appointment Details:
-• Appointment ID: {result['appointment_id']}
-• Doctor: {result['doctor_name']}
-• Date & Time: {result['appointment_datetime']}
-• Patient: {patient_name}
-• Phone: {patient_phone}
-• Doctor Contact: {result['doctor_phone']}
-
-💡 Save your Appointment ID: {result['appointment_id']}
-You can use it to check status or cancel: "check appointment {result['appointment_id']}"
-"""
+def test_dbref_resolution():
+    print("\n🧪 Testing DBRef resolution...")
+    sample_medicine = medicines_collection.find_one({"pharmacy": {"$exists": True}})
+    if sample_medicine and 'pharmacy' in sample_medicine:
+        print(f"Found medicine: {sample_medicine.get('name')}")
+        print(f"Pharmacy reference: {sample_medicine['pharmacy']} (type={type(sample_medicine['pharmacy'])})")
+        if isinstance(sample_medicine['pharmacy'], DBRef):
+            pharmacy_doc = resolve_dbref(client, sample_medicine['pharmacy'])
+            if pharmacy_doc:
+                print(f"✅ Resolved to: {pharmacy_doc.get('name')}")
+            else:
+                print("❌ Could not resolve DBRef")
         else:
-            return f"❌ Booking failed: {result['message']}"
+            pharmacy_doc = pharmacies_collection.find_one({"_id": sample_medicine['pharmacy']})
+            if pharmacy_doc:
+                print(f"✅ Found pharmacy by id: {pharmacy_doc.get('name')}")
+    else:
+        print("❌ No medicines with pharmacy references found.")
 
-    except Exception as e:
-        return f"❌ Error processing booking: {str(e)}"
-
-
-def handle_appointment_check(query):
-    """Handle appointment status check"""
+# NEW VERSION (no emojis)
+def check_vector_indexes():
+    print("\nChecking basic collection stats and embeddings presence...")
     try:
-
-        words = query.split()
-        appointment_id = None
-        for word in words:
-            if len(word) == 8 and word.isalnum():
-                appointment_id = word.upper()
-                break
-
-        if not appointment_id:
-            appointment_id = input("🔍 Enter Appointment ID: ").strip().upper()
-
-        if not appointment_id:
-            return "❌ Please provide a valid Appointment ID"
-
-        result = AppointmentBooking.get_appointment_status(appointment_id)
-
-        if result["success"]:
-            apt = result["appointment"]
-            return f"""📋 APPOINTMENT DETAILS
-
-• ID: {apt['id']}
-• Doctor: {apt['doctor_name']}
-• Patient: {apt['patient_name']}
-• Date & Time: {apt['date_time']}
-• Reason: {apt['reason']}
-• Status: {apt['status'].upper()}
-• Doctor Contact: {apt['doctor_phone']}
-"""
-        else:
-            return f"❌ {result['message']}"
-
+        hospital_count = hospital_collection.count_documents({})
+        medicines_count = medicines_collection.count_documents({})
+        pharmacies_count = pharmacies_collection.count_documents({})
+        appointments_count = appointments_collection.count_documents({})
+        print(f"   - Hospital docs: {hospital_count}")
+        print(f"   - Medicine docs: {medicines_count}")
+        print(f"   - Pharmacy docs: {pharmacies_count}")
+        print(f"   - Appointment docs: {appointments_count}")
+        hospital_with_embeddings = hospital_collection.count_documents({"embeddings": {"$exists": True}})
+        medicines_with_embeddings = medicines_collection.count_documents({"embeddings": {"$exists": True}})
+        print(f"   - Hospital w/ embeddings: {hospital_with_embeddings}/{hospital_count}")
+        print(f"   - Medicines w/ embeddings: {medicines_with_embeddings}/{medicines_count}")
     except Exception as e:
-        return f"❌ Error checking appointment: {str(e)}"
-
-
-def handle_appointment_cancellation(query):
-    """Handle appointment cancellation"""
-    try:
-        words = query.split()
-        appointment_id = None
-        for word in words:
-            if len(word) == 8 and word.isalnum():
-                appointment_id = word.upper()
-                break
-
-        if not appointment_id:
-            appointment_id = input("🔍 Enter Appointment ID to cancel: ").strip().upper()
-
-        if not appointment_id:
-            return "❌ Please provide a valid Appointment ID"
-        confirm = input(f"⚠️ Are you sure you want to cancel appointment {appointment_id}? (yes/no): ").strip().lower()
-
-        if confirm not in ['yes', 'y']:
-            return "❌ Appointment cancellation aborted"
-
-        result = AppointmentBooking.cancel_appointment(appointment_id)
-
-        if result["success"]:
-            return f"✅ Appointment {appointment_id} cancelled successfully"
-        else:
-            return f"❌ {result['message']}"
-
-    except Exception as e:
-        return f"❌ Error cancelling appointment: {str(e)}"
-
-
-def handle_availability_check(query):
-    """Handle doctor availability check"""
-    try:
-        doctor_name = input("👨‍⚕️ Enter doctor's name: ").strip()
-        check_date = input("📅 Enter date to check (YYYY-MM-DD): ").strip()
-
-        if not doctor_name or not check_date:
-            return "❌ Both doctor name and date are required"
-        doctor = hospital_collection.find_one({
-            "$or": [
-                {"doctor_name": {"$regex": doctor_name, "$options": "i"}},
-                {"name": {"$regex": doctor_name, "$options": "i"}}
-            ]
-        })
-
-        if not doctor:
-            return f"❌ Doctor '{doctor_name}' not found"
-
-        result = AppointmentBooking.get_doctor_availability(doctor["_id"], check_date)
-
-        if result["success"] and result["available"]:
-            available_slots = ", ".join(result["available_slots"])
-            booked_slots = ", ".join(result["booked_slots"]) if result["booked_slots"] else "None"
-
-            return f"""📅 AVAILABILITY FOR DR. {result['doctor_name']} on {check_date}
-
-✅ Available Slots: {available_slots or "No slots available"}
-❌ Booked Slots: {booked_slots}
-
-💡 To book: "book appointment with Dr. {result['doctor_name']} on {check_date} at [TIME]"
-"""
-        else:
-            return f"❌ {result.get('message', 'Doctor not available')}"
-
-    except Exception as e:
-        return f"❌ Error checking availability: {str(e)}"
+        print(f"Error checking collections: {e}")
+# ------------------------------------------------------------------
+# 12. MAIN SYSTEM LOOP (Enhanced with Booking)
+# ------------------------------------------------------------------
 def main_system():
-    print("\n🚀 Starting Enhanced RAG Assistant with Appointment Booking...")
+    print("\n🚀 Starting Enhanced Conversational RAG Assistant with Advanced Booking...")
 
-    # Test connection
     try:
         client.admin.command('ping')
-        print("✅ MongoDB Atlas connection successful")
+        print("✅ MongoDB Atlas connection OK")
     except Exception as e:
-        print(f"❌ MongoDB connection failed: {e}")
+        print(f"❌ MongoDB ping failed: {e}")
         return
-    hospital_qa, hospital_vectorstore = create_hospital_rag_system()
-    pharmacy_qa, pharmacy_vectorstore = create_pharmacy_rag_system()
 
+    hospital_qa, _ = create_hospital_rag_system()
+    pharmacy_qa, _ = create_pharmacy_rag_system()
     if not hospital_qa or not pharmacy_qa:
-        print("❌ Failed to initialize RAG systems")
+        print("❌ Could not create RAG systems. Abort.")
         return
 
-    print("\n🤖 Enhanced Hospital & Pharmacy Assistant with Appointment Booking")
-    print("🧠 Features: Memory + DBRef Resolution + Doctor Booking + Pharmacy Info")
-    print("\n💡 Available Commands:")
-    print("🏥 Hospital: 'I need a cardiologist' → 'book appointment with Dr. [Name] on 2025-09-20 at 10:00'")
-    print("💊 Pharmacy: 'I'm looking for paracetamol'")
-    print("📋 Booking: 'book appointment with Dr. Smith on 2025-09-20 at 14:00'")
-    print("📊 Status: 'check appointment ABC12345'")
-    print("❌ Cancel: 'cancel appointment ABC12345'")
-    print("📅 Availability: 'check Dr. Smith availability'")
-    print("-" * 80)
+    print("\n🤖 Assistant ready. Type or speak queries. Type 'exit' to quit.")
+    print("Examples:")
+    print("  • 'I need a cardiologist'")
+    print("  • 'I'm looking for paracetamol'") 
+    print("  • 'Book appointment with Dr. Sudeep Kumar'")
+    print("  • 'Check my appointment status'")
 
     while True:
         try:
-            query = input("\n🔍 Ask anything or use booking commands: ")
-            if query.lower() in ['exit', 'quit', 'bye']:
-                print("\n👋 Goodbye! Thanks for using the enhanced assistant!")
+            mode = input("\n💬 Press 's' for speech input or 't' for text (default 't'): ").strip().lower()
+            detected_lang_for_tts = None
+            if mode == 's':
+                user_query, detected_lang_for_tts = listen_to_voice()
+                if not user_query:
+                    continue
+            else:
+                user_query = input("\n🔍 Ask anything: ").strip()
+
+            if not user_query:
+                continue
+            if user_query.lower() in ['exit', 'quit', 'bye']:
+                print("👋 Goodbye!")
                 break
 
-            print("\n" + "=" * 60)
-            booking_result = process_booking_command(query)
-            if booking_result:
-                print(booking_result)
+            # ENHANCED BOOKING HANDLING
+            booking_response = handle_booking_conversation(user_query, detected_lang_for_tts)
+            if booking_response:
+                print(f"\n📅 Booking Assistant: {booking_response}")
+                speak_text(booking_response, detected_lang=detected_lang_for_tts)
                 continue
-            pharmacy_keywords = [
-                'medicine', 'drug', 'pharmacy', 'price', 'stock', 'expiry',
-                'tablet', 'capsule', 'syrup', 'injection', 'prescription',
-                'paracetamol', 'aspirin', 'antibiotic', 'vitamin', 'paracetomol'
-            ]
-            hospital_keywords = [
-                'doctor', 'physician', 'specialist', 'appointment', 'shift',
-                'schedule', 'cardiologist', 'neurologist', 'surgeon', 'available'
-            ]
 
-            is_pharmacy_query = any(keyword in query.lower() for keyword in pharmacy_keywords)
-            is_hospital_query = any(keyword in query.lower() for keyword in hospital_keywords)
+            # APPOINTMENT STATUS CHECK
+            if any(keyword in user_query.lower() for keyword in ['check', 'status', 'my appointment']):
+                status_response = check_appointment_status(user_query)
+                print(f"\n📋 Appointment Status: {status_response}")
+                speak_text(status_response, detected_lang=detected_lang_for_tts)
+                continue
+
+            # LEGACY BOOKING (for backward compatibility)
+            if "book" in user_query.lower() and "appointment" in user_query.lower():
+                words = user_query.split()
+                doctor_name = None
+                for i, w in enumerate(words):
+                    if w.lower() in ["dr.", "dr", "doctor"]:
+                        doctor_name = " ".join(words[i+1:])
+                        break
+                if not doctor_name:
+                    m = re.search(r"with (dr\.?\s*)?(?P<name>[\w\s\.]+)", user_query, flags=re.I)
+                    if m:
+                        doctor_name = m.group("name").strip()
+                if doctor_name:
+                    booking_msg = book_doctor_appointment(doctor_name)
+                    print(f"\n📅 Quick Booking: {booking_msg}")
+                    speak_text(booking_msg, detected_lang=detected_lang_for_tts)
+                else:
+                    msg = "Could not detect doctor name. Try: 'Book appointment with Dr. Sudeep Kumar'"
+                    print(f"\n⚠️ {msg}")
+                    speak_text(msg, detected_lang=detected_lang_for_tts)
+                continue
+
+            # CLASSIFY & QUERY RAG
+            pharmacy_keywords = ['medicine', 'drug', 'pharmacy', 'tablet', 'capsule', 'syrup', 'injection', 'prescription']
+            hospital_keywords = ['doctor', 'physician', 'specialist', 'appointment', 'cardiologist', 'neurologist', 'surgeon']
+
+            is_pharmacy_query = any(k in user_query.lower() for k in pharmacy_keywords)
+            is_hospital_query = any(k in user_query.lower() for k in hospital_keywords)
 
             if is_pharmacy_query and not is_hospital_query:
-                print("🔍 Searching medicine database...")
-                result = pharmacy_qa({"question": query})
-                print(f"\n💊 Pharmacy Assistant: {result['answer']}")
-
+                result = pharmacy_qa.invoke({"question": user_query})
+                answer = result['answer']
+                print(f"\n💊 Pharmacy Assistant: {answer}")
+                speak_text(answer, detected_lang=detected_lang_for_tts)
             elif is_hospital_query and not is_pharmacy_query:
-                print("🔍 Searching hospital database...")
-                result = hospital_qa({"question": query})
-                print(f"\n🏥 Hospital Assistant: {result['answer']}")
-                print(
-                    f"\n💡 Booking Tip: To book an appointment, use: 'book appointment with Dr. [Name] on [Date] at [Time]'")
-
+                result = hospital_qa.invoke({"question": user_query})
+                answer = result['answer']
+                print(f"\n🏥 Hospital Assistant: {answer}")
+                speak_text(answer, detected_lang=detected_lang_for_tts)
             else:
-                print("🔍 Searching both databases...")
-                hospital_result = hospital_qa({"question": query})
-                pharmacy_result = pharmacy_qa({"question": query})
-                print(f"\n🏥 Hospital Info: {hospital_result['answer']}")
-                print(f"\n💊 Pharmacy Info: {pharmacy_result['answer']}")
+                h_res = hospital_qa.invoke({"question": user_query})
+                p_res = pharmacy_qa.invoke({"question": user_query})
+                print(f"\n🏥 Hospital Info: {h_res['answer']}")
+                print(f"\n💊 Pharmacy Info: {p_res['answer']}")
+                speak_text(h_res['answer'], detected_lang=detected_lang_for_tts)
+                speak_text(p_res['answer'], detected_lang=detected_lang_for_tts)
 
         except KeyboardInterrupt:
-            print("\n👋 Goodbye!")
+            print("\n👋 Exiting by Ctrl-C")
             break
         except Exception as e:
             print(f"\n❌ Error: {e}")
-            print("🔄 Continuing...")
             continue
 
 if __name__ == "__main__":
-    print("🔧 Setting up Enhanced RAG System with Appointment Booking...")
-
-    create_hospital_embeddings()
-    create_pharmacy_embeddings()
+    print("🔧 Setup check: collections and embeddings...")
+    check_vector_indexes()
+    test_dbref_resolution()
+    
+    # Optional: Skip heavy embedding operations if they're already done
+    setup_choice = input("Run embedding setup? (y/n, default n): ").strip().lower()
+    if setup_choice == 'y':
+        create_hospital_embeddings()
+        create_pharmacy_embeddings()
+    
     main_system()

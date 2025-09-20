@@ -43,7 +43,7 @@ export default function HomePage() {
           <div className="row g-3">
             <div className="col-md-6">
               <Link
-                to="/chatbot"
+                to="/hospitals"
                 className="card border-0 text-decoration-none h-100"
                 style={{ 
                   background: "#4f46e5",

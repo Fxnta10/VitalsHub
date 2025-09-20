@@ -59,14 +59,14 @@ export default function RagChatbot() {
             }
 
             const data = await res.json();
-            setMessages(prev => [...prev, { 
-                type: 'bot', 
+            setMessages(prev => [...prev, {
+                type: 'bot',
                 content: data.response || 'I could not process that request.'
             }]);
         } catch (error) {
             console.error('Chatbot Error:', error);
-            setMessages(prev => [...prev, { 
-                type: 'bot', 
+            setMessages(prev => [...prev, {
+                type: 'bot',
                 content: 'Sorry, I encountered an error. Please try again later.'
             }]);
         } finally {
@@ -86,8 +86,8 @@ export default function RagChatbot() {
                             </Badge>
                         </div>
                         <div>
-                            <h3 className="mb-0">RAG Chatbot</h3>
-                            <small className="text-light">Ask me anything!</small>
+                            <h3 className="mb-0">Ask me about your health queries</h3>
+
                         </div>
                     </div>
                 </Col>
@@ -96,37 +96,35 @@ export default function RagChatbot() {
             {/* Messages */}
             <Row className="flex-grow-1 overflow-hidden">
                 <Col>
-                    <div 
-                        className="h-100 overflow-auto p-3" 
+                    <div
+                        className="h-100 overflow-auto p-3"
                         style={{ maxHeight: 'calc(100vh - 200px)' }}
                     >
                         <ListGroup variant="flush">
                             {messages.map((message, index) => (
-                                <ListGroup.Item 
-                                    key={index} 
-                                    className={`border-0 bg-transparent mb-3 ${
-                                        message.type === 'user' ? 'text-end' : 'text-start'
-                                    }`}
+                                <ListGroup.Item
+                                    key={index}
+                                    className={`border-0 bg-transparent mb-3 ${message.type === 'user' ? 'text-end' : 'text-start'
+                                        }`}
                                 >
-                                    <div className={`d-inline-flex align-items-start ${
-                                        message.type === 'user' ? 'flex-row-reverse' : ''
-                                    } gap-2`}>
-                                        <Badge 
-                                            bg={message.type === 'user' ? 'primary' : 'secondary'} 
+                                    <div className={`d-inline-flex align-items-start ${message.type === 'user' ? 'flex-row-reverse' : ''
+                                        } gap-2`}>
+                                        <Badge
+                                            bg={message.type === 'user' ? 'primary' : 'secondary'}
                                             className="p-2"
                                         >
                                             {message.type === 'user' ? '👤' : '🤖'}
                                         </Badge>
-                                        <Card 
-                                            className={`shadow-sm ${
-                                                message.type === 'user' ? 'bg-primary text-white' : ''
-                                            }`}
+                                        <Card
+                                            className={`shadow-sm ${message.type === 'user' ? 'bg-primary text-white' : ''
+                                                }`}
                                             style={{ maxWidth: '70%' }}
                                         >
                                             <Card.Body className="py-2 px-3">
-                                                <Card.Text className="mb-0 small">
-                                                    {message.content}
-                                                </Card.Text>
+                                                <Card.Text
+                                                    className="mb-0 small chatbot-output"
+                                                    dangerouslySetInnerHTML={{ __html: message.content }}
+                                                />
                                             </Card.Body>
                                         </Card>
                                     </div>
@@ -171,8 +169,8 @@ export default function RagChatbot() {
                                 />
                             </Col>
                             <Col xs="auto">
-                                <Button 
-                                    type="submit" 
+                                <Button
+                                    type="submit"
                                     variant="primary"
                                     disabled={isLoading || !text.trim()}
                                     className="d-flex align-items-center gap-2"
