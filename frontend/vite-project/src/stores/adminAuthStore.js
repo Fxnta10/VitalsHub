@@ -161,7 +161,7 @@ export const useAuthStore = create((set, get) => ({
       set({ authUser: null });
       toast.success("Logged Out Successfully");
       if (navigate) {
-        navigate("/admin/login");
+        navigate("/");
       }
       return { success: true };
     }

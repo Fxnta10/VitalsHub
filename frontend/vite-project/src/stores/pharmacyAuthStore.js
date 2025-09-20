@@ -161,13 +161,13 @@ export const usePharmacyStore = create((set, get) => ({
     await axiosInstance.post("/pharmacy/logout"); // corrected
     set({ pharmacyUser: null });
     toast.success("Logged Out Successfully");
-    if (navigate) navigate("/pharmacy/login");
+    if (navigate) navigate("/");
     return { success: true };
   } catch (error) {
     console.log("Error in logout", error.message);
     set({ pharmacyUser: null });
     toast.success("Logged Out Successfully");
-    if (navigate) navigate("/pharmacy/login");
+    if (navigate) navigate("/");
     return { success: true };
   }
 },

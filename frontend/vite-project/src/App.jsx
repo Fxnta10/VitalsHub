@@ -4,6 +4,10 @@ import { Routes, Route } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import SignupPage from "./pages/SignupPage";
 import LoginPage from "./pages/LoginPage";
+import SingleLogin from "./pages/SingleLogin";
+import UserLoginWrapper from "./components/UserLoginWrapper";
+import AdminLoginWrapper from "./components/AdminLoginWrapper";
+import PharmacyLoginWrapper from "./components/PharmacyLoginWrapper";
 import { Toaster } from "react-hot-toast";
 import MyProfile from "./pages/MyProfile";
 import Navbar from "./components/Navbar";
@@ -35,8 +39,6 @@ import AllAppointments from "./pages/AllAppointments";
 function App() {
   const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
 
-  
-
   useEffect(() => {
     // Only check auth for non-admin routes
     if (!window.location.pathname.startsWith("/admin")) {
@@ -53,13 +55,24 @@ function App() {
   }
 
   return (
-
     <div>
-      {authUser && !window.location.pathname.startsWith("/admin") && !window.location.pathname.startsWith("/pharmacy")  && <Navbar />}
+      {authUser &&
+        !window.location.pathname.startsWith("/admin") &&
+        !window.location.pathname.startsWith("/pharmacy") && <Navbar />}
       <Routes>
-        <Route path="/" element={authUser ? <HomePage />:<LoginPage/>} />
+        <Route path="/" element={authUser ? <HomePage /> : <SingleLogin />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/login" element={<LoginPage />} />
+
+        {/* Single Login Layout with Nested Routes */}
+        <Route path="/single-login" element={<SingleLogin />}>
+          <Route index element={<UserLoginWrapper />} />
+          <Route path="user" element={<UserLoginWrapper />} />
+          <Route path="admin" element={<AdminLoginWrapper />} />
+          <Route path="pharmacy" element={<PharmacyLoginWrapper />} />
+        </Route>
+
+        <Route path="/home" element={<HomePage />} />
         <Route path="/myprofile" element={<MyProfile />} />
         <Route path="/addDocs" element={<AddDocs />} />
         <Route path="/medical-records" element={<MedicalRecords />} />
@@ -73,10 +86,7 @@ function App() {
         <Route path="/pharmacy/:id" element={<Pharmacy />} />
         <Route path="/appointments" element={<AllAppointments />} />
 
-
-
-          
-        <Route path="/admin/*" >
+        <Route path="/admin/*">
           <Route index element={<AdminLoginPage />} />
           <Route path="login" element={<AdminLoginPage />} />
           <Route path="register" element={<AdminRegisterPage />} />
@@ -87,17 +97,21 @@ function App() {
           {/* <Route path="appointments" element={<AdminAppointments />} /> */}
         </Route>
 
-        <Route path="/pharmacy/login" element={<PharmacyLogin/>}/>
-        <Route path="/pharmacy/signup" element={<PharmacySignup/>}/>
-        <Route path="/pharmacy/dashboard" element={<PharmacyDashboard/>}/>
-        <Route path="/pharmacy/add-medicine" element={<PharmacyAddMedicine/>}/>
-        <Route path="/pharmacy/edit-medicine/:id" element={<PharmacyEditMed/>}/>
+        <Route path="/pharmacy/login" element={<PharmacyLogin />} />
+        <Route path="/pharmacy/signup" element={<PharmacySignup />} />
+        <Route path="/pharmacy/dashboard" element={<PharmacyDashboard />} />
+        <Route
+          path="/pharmacy/add-medicine"
+          element={<PharmacyAddMedicine />}
+        />
+        <Route
+          path="/pharmacy/edit-medicine/:id"
+          element={<PharmacyEditMed />}
+        />
       </Routes>
       <Toaster />
     </div>
   );
-   
-
 }
 
 export default App;
