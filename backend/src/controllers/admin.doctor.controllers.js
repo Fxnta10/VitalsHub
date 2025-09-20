@@ -1,7 +1,7 @@
 import express from "express";
 import axios from "axios";
 import mongoose from "mongoose";
-
+import Hospital from "../models/hospitalSchema.js";
 import Appointment from "../models/appointmentSchema.js";
 import Doctor from "../models/doctorSchema.js";
 
@@ -34,7 +34,18 @@ export const getAllDoctors = async (req, res) => {
 // Get doctors by hospital ID (for public use without authentication)
 export const getDoctorsByHospital = async (req, res) => {
   const { hospitalId } = req.params;
-  
+  //mongoose id
+
+  const hospital = await Hospital.findById(hospitalId);
+
+  if (!hospital) {
+    return res.status(404).json({
+      success: false,
+      message: "Hospital not found",
+    });
+  }
+
+  const hospitalUniqueId= hospital.hospitalId;
   try {
     // Validate ObjectId format
     if (!mongoose.Types.ObjectId.isValid(hospitalId)) {
@@ -44,7 +55,8 @@ export const getDoctorsByHospital = async (req, res) => {
       });
     }
 
-    const doctors = await Doctor.find({ hospitalId: hospitalId });
+    const doctors = await Doctor.find({ hospitalId: hospitalUniqueId });
+    console.log(doctors);
     
     if (doctors.length === 0) {
       return res.status(200).json({

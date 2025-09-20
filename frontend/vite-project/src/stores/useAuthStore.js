@@ -115,7 +115,7 @@ export const useAuthStore = create((set) => ({
   getAllHospitals: async () => {
     set({ isLoading: true });
     try {
-      const res = await axiosInstance.get("/auth/allhospitals");
+      const res = await axiosInstance.get("/user/allhospitals");
       set({ allHospitals: res.data.data });
       return { success: true };
     } catch (error) {
@@ -133,6 +133,8 @@ export const useAuthStore = create((set) => ({
       const res = await axiosInstance.get(
         `/admin/doctors/hospital/${hospitalId}`
       );
+      console.log(res.data);
+      
       set({ hospitalDoctors: res.data.data || res.data });
       return { success: true, data: res.data.data || res.data };
     } catch (error) {

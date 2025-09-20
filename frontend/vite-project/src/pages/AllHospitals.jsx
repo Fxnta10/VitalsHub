@@ -25,7 +25,9 @@ export default function AllHospitals() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading hospitals...</p>
+          <p className="mt-4 text-gray-600 text-lg font-medium">
+            Loading hospitals...
+          </p>
         </div>
       </div>
     );
@@ -35,11 +37,11 @@ export default function AllHospitals() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="text-6xl mb-4">🏥</div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">
+          <div className="text-7xl mb-4">🏥</div>
+          <h2 className="text-3xl font-extrabold text-gray-800 mb-2">
             No Hospitals Found
           </h2>
-          <p className="text-gray-600">
+          <p className="text-gray-600 text-lg">
             There are currently no hospitals available.
           </p>
         </div>
@@ -48,51 +50,50 @@ export default function AllHospitals() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+        <div className="text-center mb-16">
+          <h1 className="text-5xl font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
             Available Hospitals
           </h1>
-          <p className="text-xl text-gray-600">
-            Choose a hospital to view available doctors
+          <p className="text-lg text-gray-600">
+            Choose a hospital below to view available doctors
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Hospital Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {allHospitals.map((hospital) => (
             <div
               key={hospital._id}
-              className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 border border-gray-200 overflow-hidden"
+              className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-transform duration-300 border border-gray-100 overflow-hidden transform hover:-translate-y-2"
             >
-              <div className="p-6">
+              <div className="p-8">
                 {/* Hospital Icon */}
-                <div className="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mx-auto mb-4">
-                  <span className="text-3xl">🏥</span>
+                <div className="flex items-center justify-center w-20 h-20 bg-blue-100 rounded-full mx-auto mb-6 shadow-inner">
+                  <span className="text-4xl">🏥</span>
                 </div>
 
                 <div className="text-center mb-6">
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">
-                    Hospital {hospital.hospitalId}
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                    {hospital.hospitalId}
                   </h3>
-                  <div className="flex items-center justify-center text-gray-600 mb-2">
-                    <span className="text-sm">📧</span>
-                    <span className="ml-2 text-sm">{hospital.email}</span>
+                  <div className="flex items-center justify-center text-gray-600 mb-2 text-sm">
+                    <span className="mr-2">📧</span>
+                    {hospital.email}
                   </div>
-                  <div className="flex items-start justify-center text-gray-600">
-                    <span className="text-sm">📍</span>
-                    <p className="ml-2 text-sm text-center">
-                      {hospital.address}
-                    </p>
+                  <div className="flex items-start justify-center text-gray-600 text-sm">
+                    <span className="mr-2">📍</span>
+                    <p className="text-center max-w-xs">{hospital.address}</p>
                   </div>
                 </div>
 
                 <button
                   onClick={() => handleViewDoctors(hospital)}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-4 rounded-xl transition duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
                 >
-                  <span>�‍⚕️</span>
+                  <span className="text-lg">👨‍⚕️</span>
                   View Doctors
                 </button>
               </div>
@@ -100,10 +101,13 @@ export default function AllHospitals() {
           ))}
         </div>
 
-        <div className="text-center mt-12">
-          <p className="text-gray-600">
-            Found {allHospitals.length} hospital
-            {allHospitals.length !== 1 ? "s" : ""} available
+        <div className="text-center mt-16">
+          <p className="text-gray-600 text-lg">
+            Found{" "}
+            <span className="font-bold text-blue-600">
+              {allHospitals.length}
+            </span>{" "}
+            hospital{allHospitals.length !== 1 ? "s" : ""} available
           </p>
         </div>
       </div>
