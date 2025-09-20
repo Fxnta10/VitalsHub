@@ -30,6 +30,7 @@ import PharmacySignup from "./pages/pharmaciesAdmin/pharmacySignup";
 import PharmacyDashboard from "./pages/pharmaciesAdmin/PharmacyDashboard";
 import PharmacyAddMedicine from "./pages/pharmaciesAdmin/PharmacyAddMedicine";
 import PharmacyEditMed from "./pages/pharmaciesAdmin/PharmacyEditMed";
+import AllAppointments from "./pages/AllAppointments";
 
 function App() {
   const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
@@ -70,6 +71,8 @@ function App() {
 
         <Route path="/allPharmacies" element={<AllPharmacies />} />
         <Route path="/pharmacy/:id" element={<Pharmacy />} />
+        <Route path="/appointments" element={<AllAppointments />} />
+
 
 
           

@@ -1,14 +1,13 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuthStore } from "../stores/useAuthStore";
 import { useNavigate, useLocation } from "react-router-dom";
-import toast from "react-hot-toast";
+import { Toast, ToastContainer, Button, Form, Card, Row, Col, Container } from "react-bootstrap";
 
 export default function CreateAppointment() {
   const { authUser, createAppointment, isLoading } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Get data passed from AllDoctors page
   const {
     hospitalId,
     hospitalName,
@@ -19,7 +18,8 @@ export default function CreateAppointment() {
     doctorEmail,
   } = location.state || {};
 
-  const [formData, setFormData] = React.useState({
+  const [showToast, setShowToast] = useState(false);
+  const [formData, setFormData] = useState({
     hospitalId: "",
     patientId: authUser?._id || "",
     doctorId: "",
@@ -27,9 +27,9 @@ export default function CreateAppointment() {
     isEmergency: false,
     description: "",
   });
-  const [error, setError] = React.useState("");
+  const [error, setError] = useState("");
 
-  // Set form data when component mounts with passed data
+  // Set form data on mount
   useEffect(() => {
     if (hospitalId && doctorId && authUser) {
       setFormData((prev) => ({
@@ -41,24 +41,17 @@ export default function CreateAppointment() {
     }
   }, [hospitalId, doctorId, authUser]);
 
-  // Redirect if no doctor/hospital data is available
+  // Redirect if doctor/hospital not selected
   useEffect(() => {
     if (!hospitalId || !doctorId) {
-      toast.error("Please select a doctor first");
+      alert("Please select a doctor first"); // simpler than toast for now
       navigate("/hospitals");
     }
   }, [hospitalId, doctorId, navigate]);
 
   const validateForm = () => {
-    const { hospitalId, patientId, doctorId, appointmentTime, description } =
-      formData;
-    if (
-      !hospitalId ||
-      !patientId ||
-      !doctorId ||
-      !appointmentTime ||
-      !description
-    ) {
+    const { hospitalId, patientId, doctorId, appointmentTime, description } = formData;
+    if (!hospitalId || !patientId || !doctorId || !appointmentTime || !description) {
       setError("All fields are required");
       return false;
     }
@@ -66,165 +59,132 @@ export default function CreateAppointment() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
+  e.preventDefault();
+  setError("");
 
-    if (!validateForm()) {
-      return;
+  if (!validateForm()) return;
+
+  try {
+    const result = await createAppointment(formData);
+
+    if (result?.success) {
+      setShowToast(true); // show toast
+      // Remove the navigation here so toast stays visible
+      // navigate("/"); // do NOT navigate immediately
+    } else {
+      setError("Appointment booking failed. Please try again.");
     }
+  } catch (err) {
+    console.error("Appointment creation error:", err);
+    setError("An unexpected error occurred");
+  }
+};
 
-    try {
-      const result = await createAppointment(formData);
-
-      if (result?.success) {
-        console.log("Appointment creation successful");
-        toast.success("Appointment booked successfully!");
-        navigate("/"); // Redirect to home page
-      } else {
-        setError("Appointment booking failed. Please try again.");
-      }
-    } catch (err) {
-      console.error("Appointment creation error:", err);
-      setError("An unexpected error occurred");
-    }
-  };
 
   const handleInputChange = (field) => (e) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: e.target.value,
-    }));
-    // Clear error when user starts typing
+    setFormData((prev) => ({ ...prev, [field]: e.target.value }));
     if (error) setError("");
   };
 
   const handleBackToDoctors = () => {
-    navigate("/doctors", {
-      state: {
-        hospitalId,
-        hospitalName,
-        hospitalAddress,
-      },
-    });
+    navigate("/doctors", { state: { hospitalId, hospitalName, hospitalAddress } });
   };
 
-  // Get today's date in YYYY-MM-DD format for min date
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split("T")[0]; // min date
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header with Back Button */}
-        <div className="mb-6">
-          <button
-            onClick={handleBackToDoctors}
-            className="flex items-center text-blue-600 hover:text-blue-800 mb-4"
-          >
-            <span className="mr-2">←</span>
-            Back to Doctors
-          </button>
-        </div>
+    <Container className="my-4">
+      <Button variant="link" className="mb-3" onClick={handleBackToDoctors}>
+        ← Back to Doctors
+      </Button>
+
+      <Card className="shadow-sm p-4">
+        <Card.Title className="text-center mb-4">Book Appointment</Card.Title>
+        <Card.Text className="text-center mb-4 text-muted">
+          Fill in the details to book your appointment
+        </Card.Text>
+
+        {/* Selected Hospital & Doctor Info */}
+        <Row className="mb-4">
+          <Col md={6}>
+            <Card bg="info" text="white" className="p-3 mb-2">
+              <Card.Title>Selected Hospital</Card.Title>
+              <Card.Text>{hospitalName}</Card.Text>
+              <Card.Text className="small">{hospitalAddress}</Card.Text>
+            </Card>
+          </Col>
+          <Col md={6}>
+            <Card bg="success" text="white" className="p-3 mb-2">
+              <Card.Title>Selected Doctor</Card.Title>
+              <Card.Text>{doctorName}</Card.Text>
+              <Card.Text className="small">{doctorSpecialisation}</Card.Text>
+              <Card.Text className="small">{doctorEmail}</Card.Text>
+            </Card>
+          </Col>
+        </Row>
+
+        {error && <div className="alert alert-danger">{error}</div>}
 
         {/* Appointment Form */}
-        <div className="bg-white rounded-xl shadow-lg p-8">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Book Appointment
-            </h1>
-            <p className="text-gray-600">Fill in the details to book your appointment</p>
+        <Form onSubmit={handleSubmit}>
+          <Form.Group className="mb-3">
+            <Form.Label>Appointment Date & Time *</Form.Label>
+            <Form.Control
+              type="datetime-local"
+              value={formData.appointmentTime}
+              onChange={handleInputChange("appointmentTime")}
+              min={today}
+              required
+            />
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label>Description / Symptoms *</Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={4}
+              value={formData.description}
+              onChange={handleInputChange("description")}
+              placeholder="Describe your symptoms or reason for appointment..."
+              required
+            />
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Check
+              type="checkbox"
+              label="This is an emergency appointment"
+              checked={formData.isEmergency}
+              onChange={(e) => setFormData({ ...formData, isEmergency: e.target.checked })}
+            />
+          </Form.Group>
+
+          <div className="d-flex gap-2">
+            <Button variant="secondary" className="flex-grow-1" onClick={handleBackToDoctors}>
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit" className="flex-grow-1" disabled={isLoading}>
+              {isLoading ? "Booking..." : "Book Appointment"}
+            </Button>
           </div>
+        </Form>
+      </Card>
 
-          {/* Selected Doctor & Hospital Info */}
-          <div className="grid md:grid-cols-2 gap-6 mb-8">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-blue-800 mb-2">Selected Hospital</h3>
-              <p className="text-gray-700">{hospitalName}</p>
-              <p className="text-sm text-gray-600">{hospitalAddress}</p>
-            </div>
-            <div className="bg-green-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-green-800 mb-2">Selected Doctor</h3>
-              <p className="text-gray-700 font-medium">{doctorName}</p>
-              <p className="text-sm text-gray-600">{doctorSpecialisation}</p>
-              <p className="text-sm text-gray-600">{doctorEmail}</p>
-            </div>
-          </div>
+      {/* Success Toast */}
+     <ToastContainer position="top-end" className="p-3">
+  <Toast show={showToast} onClose={() => {setShowToast(false) 
+navigate("/");
+  }} bg="success">
+    <Toast.Header closeButton={true}>
+      <strong className="me-auto">Appointment Confirmed ✅</strong>
+      <small>Just now</small>
+    </Toast.Header>
+    <Toast.Body>
+      Your appointment with Dr. {doctorName} on {new Date(formData.appointmentTime).toLocaleString()} has been booked successfully!
+    </Toast.Body>
+  </Toast>
+</ToastContainer>
 
-          {/* Error Message */}
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-6">
-              {error}
-            </div>
-          )}
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Appointment Date & Time *
-              </label>
-              <input
-                type="datetime-local"
-                value={formData.appointmentTime}
-                onChange={handleInputChange("appointmentTime")}
-                min={today}
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Description / Symptoms *
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={handleInputChange("description")}
-                placeholder="Please describe your symptoms or reason for the appointment..."
-                rows={4}
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors resize-vertical"
-              />
-            </div>
-
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="emergency"
-                checked={formData.isEmergency}
-                onChange={(e) =>
-                  setFormData({ ...formData, isEmergency: e.target.checked })
-                }
-                className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
-              />
-              <label htmlFor="emergency" className="ml-3 text-sm text-gray-700">
-                This is an emergency appointment
-              </label>
-            </div>
-
-            {/* Submit Button */}
-            <div className="flex gap-4">
-              <button
-                type="button"
-                onClick={handleBackToDoctors}
-                className="flex-1 bg-gray-200 text-gray-800 py-3 px-6 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-colors ${
-                  isLoading
-                    ? 'bg-blue-400 text-white cursor-not-allowed'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                }`}
-              >
-                {isLoading ? 'Booking...' : 'Book Appointment'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
+    </Container>
   );
 }

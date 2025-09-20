@@ -20,7 +20,7 @@ import {
 
 //user routes (temporarily without auth for testing)
 router.post("/create", createAppointment);
-router.get("/patient", protectRoute, getPatientAppointments);
+router.get("/patient/:patientId",  getPatientAppointments);
 
 //hospital routes
 router.get("/hospital", authenticateToken, getHospitalAppointments);

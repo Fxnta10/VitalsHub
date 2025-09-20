@@ -313,7 +313,7 @@ export const deleteAppointment = async (req, res) => {
 // appointments of patient
 export const getPatientAppointments = async (req, res) => {
   try {
-    const patientId = req.user?._id || req.params.patientId;
+    const patientId = req.params.patientId;
 
     if (!patientId) {
       return res.status(400).json({
