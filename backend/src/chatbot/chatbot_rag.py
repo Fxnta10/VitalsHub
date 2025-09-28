@@ -18,14 +18,15 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-OPENAI_API_KEY=os.getenv("OPENAI_API_KEY")
+# --- FIX 1: Correctly retrieve OPENAI_API_KEY from environment ---
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # ------------------------------------------------------------------
 # 1. ENVIRONMENT & GLOBALS
 # ------------------------------------------------------------------
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-MONGO_URI = "mongodb+srv://SIH25018DB:SIH25018@cluster0.k6z2tpt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://SIH25018DB:SIH25018@cluster0.k6z2tpt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
 
 # ASR (input) via Whisper: Groq hosted or local
 ASR_BACKEND = os.getenv("ASR_BACKEND", "groq_whisper")  # "groq_whisper" or "local_whisper"
@@ -80,17 +81,18 @@ def resolve_dbref(db_client, dbref_obj):
         return None
 
 def inspect_document_structure(collection, collection_name):
-    print(f"\n🔍 Inspecting {collection_name} document structure...")
+    # EMOJI REMOVED
+    print(f"\n[INFO] Inspecting {collection_name} document structure...")
     sample_doc = collection.find_one()
     if not sample_doc:
-        print(f"❌ No documents found in {collection_name}")
+        print(f"[FAIL] No documents found in {collection_name}")
         return None
-    print(f"📋 Available fields in {collection_name}:")
+    print(f"[INFO] Available fields in {collection_name}:")
     for key, value in sample_doc.items():
         if isinstance(value, DBRef):
-            print(f"  • {key}: DBRef -> {value}")
+            print(f"   - {key}: DBRef -> {value}")
         else:
-            print(f"  • {key}: {type(value).__name__} = {str(value)[:60]}...")
+            print(f"   - {key}: {type(value).__name__} = {str(value)[:60]}...")
     return sample_doc
 
 def get_safe_field_value(doc, possible_names, default="N/A"):
@@ -103,12 +105,13 @@ def get_safe_field_value(doc, possible_names, default="N/A"):
 # 5. EMBEDDING CREATION
 # ------------------------------------------------------------------
 def create_hospital_embeddings():
-    print("\n🏥 HOSPITAL DATASET: creating/updating embeddings...")
+    # EMOJI REMOVED
+    print("\n[HOSPITAL] DATASET: creating/updating embeddings...")
     sample_doc = inspect_document_structure(hospital_collection, "hospital/documents")
     if not sample_doc:
         return
     docs = list(hospital_collection.find())
-    print(f"🔄 Processing {len(docs)} hospital documents for embeddings...")
+    print(f"[HOSPITAL] Processing {len(docs)} hospital documents for embeddings...")
     for doc in docs:
         doctor_name = get_safe_field_value(doc, ['doctor_name', 'doctorName', 'name', 'fullName', 'full_name'])
         specialty = get_safe_field_value(doc, ['speciality', 'specialty', 'specialization', 'department'])
@@ -127,22 +130,23 @@ Available: {is_available}"""
         try:
             embedding = embedding_model.embed_query(text_content)
         except Exception as e:
-            print(f"  ⚠️ Embedding failed for {doctor_name}: {e}")
+            print(f"  [WARN] Embedding failed for {doctor_name}: {e}")
             embedding = []
         hospital_collection.update_one(
             {"_id": doc["_id"]},
             {"$set": {"text": text_content, "embeddings": embedding}}
         )
-        print(f"  ✓ Updated embeddings for: {doctor_name}")
-    print("✅ Hospital embeddings updated.")
+        print(f"  [OK] Updated embeddings for: {doctor_name}")
+    print("[HOSPITAL] embeddings updated.")
 
 def create_pharmacy_embeddings():
-    print("\n💊 PHARMACY DATASET: creating/updating embeddings...")
+    # EMOJI REMOVED
+    print("\n[PHARMACY] DATASET: creating/updating embeddings...")
     sample_doc = inspect_document_structure(medicines_collection, "medicines")
     if not sample_doc:
         return
     docs = list(medicines_collection.find())
-    print(f"🔄 Processing {len(docs)} medicine documents for embeddings...")
+    print(f"[PHARMACY] Processing {len(docs)} medicine documents for embeddings...")
     for doc in docs:
         medicine_name = get_safe_field_value(doc, ['name', 'medicine_name', 'medicineName', 'drug_name'])
         generic_name = get_safe_field_value(doc, ['genericName', 'generic_name', 'generic', 'composition'])
@@ -183,14 +187,14 @@ Prescription Required: {prescription_required}
         try:
             embedding = embedding_model.embed_query(text_content)
         except Exception as e:
-            print(f"  ⚠️ Embedding failed for {medicine_name}: {e}")
+            print(f"  [WARN] Embedding failed for {medicine_name}: {e}")
             embedding = []
         medicines_collection.update_one(
             {"_id": doc["_id"]},
             {"$set": {"text": text_content, "embeddings": embedding}}
         )
-        print(f"  ✓ Updated embeddings for: {medicine_name}")
-    print("✅ Medicine embeddings updated.")
+        print(f"  [OK] Updated embeddings for: {medicine_name}")
+    print("[PHARMACY] Medicine embeddings updated.")
 
 # ------------------------------------------------------------------
 # 6. ENHANCED BOOKING SYSTEM USING EXISTING APPOINTMENTS COLLECTION
@@ -217,8 +221,15 @@ class PatientBookingSystem:
     
     def collect_booking_details(self, user_input, detected_lang=None):
         """Conversational booking flow using existing appointments collection"""
+        
+        # Check if the flow is at the start (step 0) and needs initiation keywords
+        if self.current_booking_step == 0:
+            if not any(keyword in user_input.lower() for keyword in ['book', 'appointment', 'schedule', 'see a doctor']):
+                 return None # Not a booking query, defer to RAG
+            
         step = self.booking_steps[self.current_booking_step]
         
+        # Dispatch to specific step handlers
         if step == 'doctor_selection':
             return self.handle_doctor_selection(user_input)
         elif step == 'patient_name':
@@ -235,6 +246,10 @@ class PatientBookingSystem:
             return self.handle_time_selection(user_input)
         elif step == 'confirmation':
             return self.handle_confirmation(user_input)
+        
+        # Should not happen
+        return "Sorry, I lost track of your booking. Let's start over. Which doctor would you like to see?"
+
     
     def handle_doctor_selection(self, user_input):
         """Extract and validate doctor selection"""
@@ -244,7 +259,8 @@ class PatientBookingSystem:
         patterns = [
             r"(?:dr\.?\s*|doctor\s+)([a-zA-Z\s\.]+)",
             r"with\s+([a-zA-Z\s\.]+)",
-            r"appointment\s+with\s+([a-zA-Z\s\.]+)"
+            r"appointment\s+with\s+([a-zA-Z\s\.]+)",
+            r"see\s+([a-zA-Z\s\.]+)" # Catch "see Dr. Smith"
         ]
         
         for pattern in patterns:
@@ -254,6 +270,9 @@ class PatientBookingSystem:
                 break
         
         if not doctor_name:
+            # If the user is starting the flow but didn't specify a doctor yet
+            if self.current_booking_step == 0:
+                 self.current_booking_step = 0 # Remain at this step
             return "I'd be happy to help you book an appointment! Could you please tell me which doctor you'd like to see? For example: 'Dr. Sudeep Kumar' or 'Dr. Manoj Joshi'."
         
         # Find doctor in hospital collection
@@ -261,16 +280,8 @@ class PatientBookingSystem:
         if not doctor_doc:
             return f"I couldn't find a doctor named '{doctor_name}' in our system. Could you please check the spelling or try a different doctor's name?"
         
-        # Check if doctor has available slots by looking at existing appointments
+        # Simple availability check (only checking existence in DB)
         doctor_full_name = get_safe_field_value(doctor_doc, ['doctor_name', 'name', 'full_name'])
-        today = datetime.now().date()
-        
-        # Count appointments for this doctor today and in the next few days
-        recent_appointments = appointments_collection.count_documents({
-            "doctor_name": doctor_full_name,
-            "status": "scheduled",
-            "appointment_date": {"$gte": today.strftime("%Y-%m-%d")}
-        })
         
         self.booking_data['doctor'] = doctor_doc
         self.current_booking_step += 1
@@ -323,6 +334,12 @@ class PatientBookingSystem:
     
     def handle_preferred_date(self, user_input):
         """Parse date preference and show available dates"""
+        # Ensure we have the dependency for advanced date parsing
+        try:
+            import dateutil.parser
+        except ImportError:
+            return "Error: Please install 'python-dateutil' to enable flexible date parsing."
+            
         date_input = user_input.strip().lower()
         self.booking_data['preferred_date_input'] = date_input
         
@@ -344,7 +361,7 @@ class PatientBookingSystem:
         # Generate available time slots (excluding booked ones)
         all_slots = ["09:00", "10:00", "11:00", "14:00", "15:00", "16:00", "17:00"]
         booked_times = [apt.get("appointment_time", "").split(":")[0] + ":00" 
-                       for apt in existing_appointments if apt.get("appointment_time")]
+                        for apt in existing_appointments if apt.get("appointment_time")]
         
         available_slots = [slot for slot in all_slots if slot not in booked_times]
         
@@ -353,7 +370,7 @@ class PatientBookingSystem:
             return f"Sorry, {doctor_name} has no available slots on {target_date.strftime('%B %d, %Y')}. Would you like to try {next_date.strftime('%B %d, %Y')} instead?"
         
         self.booking_data['appointment_date'] = target_date
-        slots_text = "\n".join([f"• {slot}" for slot in available_slots])
+        slots_text = "\n".join([f"- {slot}" for slot in available_slots])
         
         self.current_booking_step += 1
         return f"Available time slots for {target_date.strftime('%B %d, %Y')}:\n\n{slots_text}\n\nWhich time would you prefer?"
@@ -362,9 +379,11 @@ class PatientBookingSystem:
         """Handle time slot selection"""
         time_input = user_input.strip()
         
-        # Extract time from input
+        # Extract time from input (e.g., 10:30, 2 pm, 4)
         time_pattern = r'(\d{1,2}):?(\d{0,2})\s*(am|pm)?'
         match = re.search(time_pattern, time_input.lower())
+        
+        selected_time = None
         
         if match:
             hour = int(match.group(1))
@@ -378,12 +397,14 @@ class PatientBookingSystem:
             
             selected_time = f"{hour:02d}:{minute}"
         else:
-            # Try to match common time formats
+            # Try to match common single hour formats
             time_mappings = {
                 "9": "09:00", "10": "10:00", "11": "11:00",
-                "2": "14:00", "3": "15:00", "4": "16:00", "5": "17:00"
+                "2": "14:00", "3": "15:00", "4": "16:00", "5": "17:00",
+                "9am": "09:00", "10am": "10:00", "11am": "11:00",
+                "2pm": "14:00", "3pm": "15:00", "4pm": "16:00", "5pm": "17:00",
             }
-            selected_time = time_mappings.get(time_input.strip())
+            selected_time = time_mappings.get(time_input.strip().lower().replace(" ", ""))
         
         if not selected_time:
             return "Please specify a time like '10:00 AM', '2:30 PM', or just '10' for 10 AM."
@@ -397,15 +418,15 @@ class PatientBookingSystem:
         date_str = self.booking_data['appointment_date'].strftime('%B %d, %Y')
         
         confirmation_text = f"""
-📋 Please confirm your appointment details:
+[CONFIRMATION] Please confirm your appointment details:
 
-• Patient: {self.booking_data['patient_name']}
-• Doctor: {doctor_name} ({specialty})
-• Date: {date_str}
-• Time: {selected_time}
-• Reason: {self.booking_data['appointment_reason']}
-• Phone: {self.booking_data['patient_phone']}
-• Email: {self.booking_data['patient_email']}
+- Patient: {self.booking_data['patient_name']}
+- Doctor: {doctor_name} ({specialty})
+- Date: {date_str}
+- Time: {selected_time}
+- Reason: {self.booking_data['appointment_reason']}
+- Phone: {self.booking_data['patient_phone']}
+- Email: {self.booking_data['patient_email']}
 
 Type 'YES' to confirm or 'NO' to cancel.
         """
@@ -426,17 +447,16 @@ Type 'YES' to confirm or 'NO' to cancel.
                 time_str = self.booking_data['appointment_time']
                 
                 confirmation_msg = f"""
-✅ APPOINTMENT CONFIRMED!
+[APPOINTMENT CONFIRMED!]
 
-📋 Appointment Details:
-• Appointment ID: {appointment_id}
-• Patient: {self.booking_data['patient_name']}
-• Doctor: {doctor_name}
-• Date & Time: {date_str} at {time_str}
-• Reason: {self.booking_data['appointment_reason']}
+[Details]
+- Appointment ID: {appointment_id}
+- Patient: {self.booking_data['patient_name']}
+- Doctor: {doctor_name}
+- Date & Time: {date_str} at {time_str}
+- Reason: {self.booking_data['appointment_reason']}
 
-📱 You will receive a confirmation SMS and email shortly.
-📞 For changes, please call us at least 24 hours in advance.
+You will receive a confirmation SMS and email shortly. For changes, please call us at least 24 hours in advance.
 
 Thank you for choosing our healthcare services!
                 """
@@ -444,64 +464,45 @@ Thank you for choosing our healthcare services!
                 self.reset_booking()
                 return confirmation_msg.strip()
             else:
-                return "❌ Sorry, there was an error creating your appointment. Please try again or contact our support team."
+                return "[FAIL] Sorry, there was an error creating your appointment. Please try again or contact our support team."
         
         elif response in ['no', 'n', 'cancel']:
             self.reset_booking()
-            return "❌ Appointment cancelled. Is there anything else I can help you with?"
+            return "[CANCELED] Appointment cancelled. Is there anything else I can help you with?"
         
         else:
             return "Please type 'YES' to confirm your appointment or 'NO' to cancel."
     
     def parse_date_expression(self, date_input):
-        """Parse various date expressions"""
+        """Parse various date expressions (requires python-dateutil)"""
+        try:
+            import dateutil.parser
+        except ImportError:
+            return None # Cannot proceed without dateutil for flexible parsing
+            
         today = datetime.now().date()
         
+        # Simple relative checks
+        if "today" in date_input:
+            return today
         if "tomorrow" in date_input:
             return today + timedelta(days=1)
-        elif "next week" in date_input:
+        if "next week" in date_input:
             return today + timedelta(days=7)
-        elif "monday" in date_input:
-            days_ahead = 0 - today.weekday()
-            if days_ahead <= 0:
-                days_ahead += 7
-            return today + timedelta(days=days_ahead)
-        elif "tuesday" in date_input:
-            days_ahead = 1 - today.weekday()
-            if days_ahead <= 0:
-                days_ahead += 7
-            return today + timedelta(days=days_ahead)
-        elif "wednesday" in date_input:
-            days_ahead = 2 - today.weekday()
-            if days_ahead <= 0:
-                days_ahead += 7
-            return today + timedelta(days=days_ahead)
-        elif "thursday" in date_input:
-            days_ahead = 3 - today.weekday()
-            if days_ahead <= 0:
-                days_ahead += 7
-            return today + timedelta(days=days_ahead)
-        elif "friday" in date_input:
-            days_ahead = 4 - today.weekday()
-            if days_ahead <= 0:
-                days_ahead += 7
-            return today + timedelta(days=days_ahead)
-        elif "saturday" in date_input:
-            days_ahead = 5 - today.weekday()
-            if days_ahead <= 0:
-                days_ahead += 7
-            return today + timedelta(days=days_ahead)
-        elif "sunday" in date_input:
-            days_ahead = 6 - today.weekday()
-            if days_ahead <= 0:
-                days_ahead += 7
-            return today + timedelta(days=days_ahead)
         
-        # Try to parse specific dates (basic implementation)
+        # Day of week checks (gets next occurrence)
+        day_map = {'monday': 0, 'tuesday': 1, 'wednesday': 2, 'thursday': 3, 'friday': 4, 'saturday': 5, 'sunday': 6}
+        for day_name, day_index in day_map.items():
+             if day_name in date_input:
+                days_ahead = day_index - today.weekday()
+                if days_ahead <= 0: # Check if day has passed this week, if so, look to next week
+                    days_ahead += 7
+                return today + timedelta(days=days_ahead)
+
+        # Try to parse specific dates
         try:
-            # Handle formats like "September 25" or "25th"
-            import dateutil.parser
             parsed_date = dateutil.parser.parse(date_input, default=datetime.now()).date()
+            # Ensure the date is today or in the future
             if parsed_date >= today:
                 return parsed_date
         except:
@@ -538,18 +539,18 @@ Thank you for choosing our healthcare services!
             result = appointments_collection.insert_one(appointment_record)
             
             if result.inserted_id:
-                print(f"✅ Appointment created with ID: {appointment_id}")
+                print(f"[DB OK] Appointment created with ID: {appointment_id}")
                 return appointment_id
             else:
-                print("❌ Failed to create appointment")
+                print("[DB FAIL] Failed to create appointment")
                 return None
                 
         except Exception as e:
-            print(f"❌ Error creating appointment: {e}")
+            print(f"[DB FAIL] Error creating appointment: {e}")
             return None
 
 # Initialize booking system
-booking_system = PatientBookingSystem()
+booking_system = PatientBookingSystem() 
 
 # ------------------------------------------------------------------
 # 7. DOCTOR LOOKUP FUNCTIONS
@@ -559,31 +560,35 @@ def find_doctor_doc_by_name(name):
         return None
     fields = ['doctor_name', 'doctorName', 'name', 'fullName', 'full_name']
     for f in fields:
+        # Exact match attempt
         doc = hospital_collection.find_one({f: name})
         if doc:
             return doc
     for f in fields:
+        # Regex match attempt
         doc = hospital_collection.find_one({f: {"$regex": re.escape(name), "$options": "i"}})
         if doc:
             return doc
     return None
 
 def book_doctor_appointment(doctor_name):
+    """(Legacy/Quick Booking) - Only used in main_system loop, ignored by API logic."""
     try:
         doc = find_doctor_doc_by_name(doctor_name)
         if not doc:
-            return f"❌ Doctor '{doctor_name}' not found."
+            return f"[FAIL] Doctor '{doctor_name}' not found."
+        
         if not doc.get("isAvailable", True):
             found_name = get_safe_field_value(doc, ['doctor_name', 'name', 'full_name'])
-            return f"⚠️ Doctor {found_name} is already booked."
-        hospital_collection.update_one({"_id": doc["_id"]}, {"$set": {"isAvailable": False}})
+            return f"[WARN] Doctor {found_name} is already booked."
+            
         found_name = get_safe_field_value(doc, ['doctor_name', 'name', 'full_name'])
-        return f"✅ Appointment booked successfully with {found_name}!"
+        return f"[OK] Appointment booked successfully with {found_name}! (This is a quick simulation.)"
     except Exception as e:
-        return f"❌ Booking failed: {e}"
+        return f"[FAIL] Quick Booking failed: {e}"
 
 def handle_booking_conversation(user_query, detected_lang=None):
-    """Handle conversational booking flow using existing appointments collection"""
+    """(Legacy function used only by the main_system CLI loop)"""
     
     # Check if this is the start of a new booking
     if booking_system.current_booking_step == 0:
@@ -607,7 +612,7 @@ def get_patient_appointments(patient_phone):
         
         return appointments
     except Exception as e:
-        print(f"❌ Error retrieving appointments: {e}")
+        print(f"[FAIL] Error retrieving appointments: {e}")
         return []
 
 def cancel_appointment(appointment_id):
@@ -620,7 +625,7 @@ def cancel_appointment(appointment_id):
         
         return result.modified_count > 0
     except Exception as e:
-        print(f"❌ Error cancelling appointment: {e}")
+        print(f"[FAIL] Error cancelling appointment: {e}")
         return False
 
 def check_appointment_status(query):
@@ -638,8 +643,8 @@ def check_appointment_status(query):
                 date = apt.get('appointment_date', 'N/A')
                 time = apt.get('appointment_time', 'N/A')
                 doctor = apt.get('doctor_name', 'N/A')
-                apt_list.append(f"• {apt.get('appointment_id')}: {doctor} on {date} at {time}")
-            return f"Your appointments:\n" + "\n".join(apt_list)
+                apt_list.append(f"- {apt.get('appointment_id')}: {doctor} on {date} at {time} (Status: {apt.get('status', 'N/A')})")
+            return f"Your appointments associated with phone {phone}:\n" + "\n".join(apt_list)
         else:
             return "No scheduled appointments found for this phone number."
     
@@ -659,7 +664,7 @@ def check_appointment_status(query):
 def record_to_wav(tmp_path=None, sample_rate=AUDIO_SAMPLE_RATE):
     recognizer = sr.Recognizer()
     mic = sr.Microphone(sample_rate=sample_rate)
-    print("🎤 Listening... (speak now)")
+    print("Listening... (speak now)")
     with mic as source:
         recognizer.adjust_for_ambient_noise(source, duration=0.8)
         audio = recognizer.listen(source)
@@ -687,10 +692,10 @@ def transcribe_with_groq_whisper(wav_path, model=GROQ_ASR_MODEL, language_hint=A
             detected_lang = out.get("language")
             return text, detected_lang
         else:
-            print(f"❌ Groq ASR error {resp.status_code}: {resp.text}")
+            print(f"[ASR FAIL] Groq ASR error {resp.status_code}: {resp.text}")
             return "", None
     except Exception as e:
-        print(f"❌ Groq ASR exception: {e}")
+        print(f"[ASR FAIL] Groq ASR exception: {e}")
         return "", None
 
 def transcribe_with_local_whisper(wav_path, language_hint=ASR_LANGUAGE_HINT):
@@ -702,7 +707,7 @@ def transcribe_with_local_whisper(wav_path, language_hint=ASR_LANGUAGE_HINT):
         detected_lang = result.get("language")
         return text, detected_lang
     except Exception as e:
-        print(f"❌ Local Whisper error: {e}")
+        print(f"[ASR FAIL] Local Whisper error: {e}")
         return "", None
 
 def detect_lang_for_tts(detected_lang, fallback_hint=ASR_LANGUAGE_HINT, default="en"):
@@ -714,20 +719,13 @@ def detect_lang_for_tts(detected_lang, fallback_hint=ASR_LANGUAGE_HINT, default=
             return c[:2]
     return default
 
-# ----- ElevenLabs TTS -----
 def tts_with_elevenlabs(text, lang2="en"):
-    """
-    ElevenLabs SDK streaming playback for low-latency natural speech.
-    Requires: pip install elevenlabs and ELEVENLABS_API_KEY in env.
-    """
     try:
         from elevenlabs import stream
         from elevenlabs.client import ElevenLabs
 
-        # Use API key from env automatically if not passed here
         client = ElevenLabs(api_key=ELEVENLABS_API_KEY if ELEVENLABS_API_KEY else None)
 
-        # Stream audio and play progressively
         audio_stream = client.text_to_speech.stream(
             voice_id=ELEVENLABS_VOICE_ID,
             text=text,
@@ -735,7 +733,7 @@ def tts_with_elevenlabs(text, lang2="en"):
         )
         stream(audio_stream)
     except Exception as e:
-        print(f"❌ ElevenLabs TTS error: {e}")
+        print(f"[TTS FAIL] ElevenLabs TTS error: {e}")
 
 def speak_text(text, detected_lang=None):
     lang2 = detect_lang_for_tts(detected_lang)
@@ -751,11 +749,12 @@ def listen_to_voice():
     elif ASR_BACKEND == "local_whisper":
         text, detected_lang = transcribe_with_local_whisper(wav_path)
     else:
-        print("⚠️ No ASR backend configured")
+        print("WARN: No ASR backend configured")
         return "", None
     if text:
-        print(f"🗣️ You said: {text}")
+        print(f"[VOICE] You said: {text}")
     return text, detected_lang
+
 
 # ------------------------------------------------------------------
 # 10. CONVERSATIONAL RAG SYSTEMS
@@ -778,7 +777,9 @@ def create_hospital_rag_system():
             verbose=False,
             combine_docs_chain_kwargs={
                 "prompt": PromptTemplate(
-                    template="""ou are a helpful pharmacy assistant. Use chat history + context. Give answer in short laymam terms so the everybody can understand
+                    # --- FIX 2: CORRECTED PROMPT/PERSONA ---
+                    template="""You are a helpful **Hospital and Doctor Assistant**. Use chat history + context. Give the answer in short, layman terms so everybody can understand.
+
 Chat History:
 {chat_history}
 Doctor Info:
@@ -787,13 +788,12 @@ Question: {question}
 Answer:""",
                     input_variables=["chat_history", "context", "question"]
                 )
-                
             }
         )
-        print("✅ Hospital RAG system created.")
+        print("[RAG OK] Hospital RAG system created.")
         return qa_chain, vectorstore
     except Exception as e:
-        print(f"❌ Hospital RAG creation failed: {e}")
+        print(f"[RAG FAIL] Hospital RAG creation failed: {e}")
         return None, None
 
 def create_pharmacy_rag_system():
@@ -825,17 +825,17 @@ Answer:""",
                 )
             }
         )
-        print("✅ Pharmacy RAG system created.")
+        print("[RAG OK] Pharmacy RAG system created.")
         return qa_chain, vectorstore
     except Exception as e:
-        print(f"❌ Pharmacy RAG creation failed: {e}")
+        print(f"[RAG FAIL] Pharmacy RAG creation failed: {e}")
         return None, None
 
 # ------------------------------------------------------------------
 # 11. DEBUG HELPERS
 # ------------------------------------------------------------------
 def test_dbref_resolution():
-    print("\n🧪 Testing DBRef resolution...")
+    print("\n[TEST] Testing DBRef resolution...")
     sample_medicine = medicines_collection.find_one({"pharmacy": {"$exists": True}})
     if sample_medicine and 'pharmacy' in sample_medicine:
         print(f"Found medicine: {sample_medicine.get('name')}")
@@ -843,88 +843,92 @@ def test_dbref_resolution():
         if isinstance(sample_medicine['pharmacy'], DBRef):
             pharmacy_doc = resolve_dbref(client, sample_medicine['pharmacy'])
             if pharmacy_doc:
-                print(f"✅ Resolved to: {pharmacy_doc.get('name')}")
+                print(f"[TEST OK] Resolved to: {pharmacy_doc.get('name')}")
             else:
-                print("❌ Could not resolve DBRef")
+                print("[TEST FAIL] Could not resolve DBRef")
         else:
             pharmacy_doc = pharmacies_collection.find_one({"_id": sample_medicine['pharmacy']})
             if pharmacy_doc:
-                print(f"✅ Found pharmacy by id: {pharmacy_doc.get('name')}")
+                print(f"[TEST OK] Found pharmacy by id: {pharmacy_doc.get('name')}")
     else:
-        print("❌ No medicines with pharmacy references found.")
+        print("[TEST FAIL] No medicines with pharmacy references found.")
 
-# NEW VERSION (no emojis)
 def check_vector_indexes():
+    # EMOJI REMOVED
     print("\nChecking basic collection stats and embeddings presence...")
     try:
         hospital_count = hospital_collection.count_documents({})
         medicines_count = medicines_collection.count_documents({})
         pharmacies_count = pharmacies_collection.count_documents({})
         appointments_count = appointments_collection.count_documents({})
-        print(f"   - Hospital docs: {hospital_count}")
-        print(f"   - Medicine docs: {medicines_count}")
-        print(f"   - Pharmacy docs: {pharmacies_count}")
-        print(f"   - Appointment docs: {appointments_count}")
+        print(f" - Hospital docs: {hospital_count}")
+        print(f" - Medicine docs: {medicines_count}")
+        print(f" - Pharmacy docs: {pharmacies_count}")
+        print(f" - Appointment docs: {appointments_count}")
         hospital_with_embeddings = hospital_collection.count_documents({"embeddings": {"$exists": True}})
         medicines_with_embeddings = medicines_collection.count_documents({"embeddings": {"$exists": True}})
-        print(f"   - Hospital w/ embeddings: {hospital_with_embeddings}/{hospital_count}")
-        print(f"   - Medicines w/ embeddings: {medicines_with_embeddings}/{medicines_count}")
+        print(f" - Hospital w/ embeddings: {hospital_with_embeddings}/{hospital_count}")
+        print(f" - Medicines w/ embeddings: {medicines_with_embeddings}/{medicines_count}")
     except Exception as e:
-        print(f"Error checking collections: {e}")
+        print(f"[FAIL] Error checking collections: {e}")
+
 # ------------------------------------------------------------------
-# 12. MAIN SYSTEM LOOP (Enhanced with Booking)
+# 12. MAIN SYSTEM LOOP (For CLI Execution)
 # ------------------------------------------------------------------
 def main_system():
-    print("\n🚀 Starting Enhanced Conversational RAG Assistant with Advanced Booking...")
+    # EMOJI REMOVED
+    print("\nStarting Enhanced Conversational RAG Assistant with Advanced Booking...")
 
     try:
         client.admin.command('ping')
-        print("✅ MongoDB Atlas connection OK")
+        print("[DB OK] MongoDB Atlas connection OK")
     except Exception as e:
-        print(f"❌ MongoDB ping failed: {e}")
+        print(f"[DB FAIL] MongoDB ping failed: {e}")
         return
 
     hospital_qa, _ = create_hospital_rag_system()
     pharmacy_qa, _ = create_pharmacy_rag_system()
     if not hospital_qa or not pharmacy_qa:
-        print("❌ Could not create RAG systems. Abort.")
+        print("[FATAL] Could not create RAG systems. Abort.")
         return
 
-    print("\n🤖 Assistant ready. Type or speak queries. Type 'exit' to quit.")
+    print("\n[ASSISTANT] ready. Type or speak queries. Type 'exit' to quit.")
     print("Examples:")
-    print("  • 'I need a cardiologist'")
-    print("  • 'I'm looking for paracetamol'") 
-    print("  • 'Book appointment with Dr. Sudeep Kumar'")
-    print("  • 'Check my appointment status'")
+    print(" - 'I need a cardiologist'")
+    print(" - 'I'm looking for paracetamol'") 
+    print(" - 'Book appointment with Dr. Sudeep Kumar'")
+    print(" - 'Check my appointment status'")
 
     while True:
         try:
-            mode = input("\n💬 Press 's' for speech input or 't' for text (default 't'): ").strip().lower()
+            mode = input("\n[PROMPT] Press 's' for speech input or 't' for text (default 't'): ").strip().lower()
             detected_lang_for_tts = None
             if mode == 's':
                 user_query, detected_lang_for_tts = listen_to_voice()
                 if not user_query:
                     continue
             else:
-                user_query = input("\n🔍 Ask anything: ").strip()
+                user_query = input("\n[QUERY] Ask anything: ").strip()
 
             if not user_query:
                 continue
             if user_query.lower() in ['exit', 'quit', 'bye']:
-                print("👋 Goodbye!")
+                print("[ASSISTANT] Goodbye!")
                 break
 
             # ENHANCED BOOKING HANDLING
             booking_response = handle_booking_conversation(user_query, detected_lang_for_tts)
             if booking_response:
-                print(f"\n📅 Booking Assistant: {booking_response}")
+                print(f"\n[BOOKING] Booking Assistant: {booking_response}")
                 speak_text(booking_response, detected_lang=detected_lang_for_tts)
+                if booking_system.current_booking_step > 0: 
+                    continue 
                 continue
 
             # APPOINTMENT STATUS CHECK
             if any(keyword in user_query.lower() for keyword in ['check', 'status', 'my appointment']):
                 status_response = check_appointment_status(user_query)
-                print(f"\n📋 Appointment Status: {status_response}")
+                print(f"\n[STATUS] Appointment Status: {status_response}")
                 speak_text(status_response, detected_lang=detected_lang_for_tts)
                 continue
 
@@ -942,17 +946,17 @@ def main_system():
                         doctor_name = m.group("name").strip()
                 if doctor_name:
                     booking_msg = book_doctor_appointment(doctor_name)
-                    print(f"\n📅 Quick Booking: {booking_msg}")
+                    print(f"\n[QUICK BOOK] Quick Booking: {booking_msg}")
                     speak_text(booking_msg, detected_lang=detected_lang_for_tts)
                 else:
                     msg = "Could not detect doctor name. Try: 'Book appointment with Dr. Sudeep Kumar'"
-                    print(f"\n⚠️ {msg}")
+                    print(f"\n[WARN] {msg}")
                     speak_text(msg, detected_lang=detected_lang_for_tts)
                 continue
 
             # CLASSIFY & QUERY RAG
             pharmacy_keywords = ['medicine', 'drug', 'pharmacy', 'tablet', 'capsule', 'syrup', 'injection', 'prescription']
-            hospital_keywords = ['doctor', 'physician', 'specialist', 'appointment', 'cardiologist', 'neurologist', 'surgeon']
+            hospital_keywords = ['doctor', 'physician', 'specialist', 'cardiologist', 'neurologist', 'surgeon']
 
             is_pharmacy_query = any(k in user_query.lower() for k in pharmacy_keywords)
             is_hospital_query = any(k in user_query.lower() for k in hospital_keywords)
@@ -960,35 +964,51 @@ def main_system():
             if is_pharmacy_query and not is_hospital_query:
                 result = pharmacy_qa.invoke({"question": user_query})
                 answer = result['answer']
-                print(f"\n💊 Pharmacy Assistant: {answer}")
+                print(f"\n[PHARMACY] Pharmacy Assistant: {answer}")
                 speak_text(answer, detected_lang=detected_lang_for_tts)
             elif is_hospital_query and not is_pharmacy_query:
                 result = hospital_qa.invoke({"question": user_query})
                 answer = result['answer']
-                print(f"\n🏥 Hospital Assistant: {answer}")
+                print(f"\n[HOSPITAL] Hospital Assistant: {answer}")
                 speak_text(answer, detected_lang=detected_lang_for_tts)
             else:
+                # Mixed/Ambiguous query
                 h_res = hospital_qa.invoke({"question": user_query})
                 p_res = pharmacy_qa.invoke({"question": user_query})
-                print(f"\n🏥 Hospital Info: {h_res['answer']}")
-                print(f"\n💊 Pharmacy Info: {p_res['answer']}")
-                speak_text(h_res['answer'], detected_lang=detected_lang_for_tts)
-                speak_text(p_res['answer'], detected_lang=detected_lang_for_tts)
+                
+                h_answer = h_res.get('answer', "I don't have information on that.")
+                p_answer = p_res.get('answer', "I don't have information on that.")
+                
+                print(f"\n[HOSPITAL] Hospital Info: {h_answer}")
+                print(f"\n[PHARMACY] Pharmacy Info: {p_answer}")
+                
+                # Combine response for TTS
+                if "I don't know" in h_answer and "I don't know" in p_answer:
+                    combined_answer = "I'm sorry, I couldn't find information regarding your query in either the hospital or pharmacy database."
+                elif "I don't know" in h_answer:
+                    combined_answer = f"Regarding the pharmacy: {p_answer}"
+                elif "I don't know" in p_answer:
+                    combined_answer = f"Regarding the hospital: {h_answer}"
+                else:
+                    combined_answer = f"Regarding the hospital: {h_answer}. And regarding the pharmacy: {p_answer}"
+                
+                speak_text(combined_answer, detected_lang=detected_lang_for_tts)
+
 
         except KeyboardInterrupt:
-            print("\n👋 Exiting by Ctrl-C")
+            print("\n[EXIT] Exiting by Ctrl-C")
             break
         except Exception as e:
-            print(f"\n❌ Error: {e}")
+            print(f"\n[ERROR] Unhandled Error: {e}")
             continue
 
 if __name__ == "__main__":
-    print("🔧 Setup check: collections and embeddings...")
+    print("[SETUP] Setup check: collections and embeddings...")
     check_vector_indexes()
     test_dbref_resolution()
     
     # Optional: Skip heavy embedding operations if they're already done
-    setup_choice = input("Run embedding setup? (y/n, default n): ").strip().lower()
+    setup_choice = input("Run embedding setup (create/update embeddings)? (y/n, default n): ").strip().lower()
     if setup_choice == 'y':
         create_hospital_embeddings()
         create_pharmacy_embeddings()

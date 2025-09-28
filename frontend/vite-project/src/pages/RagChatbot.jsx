@@ -1,41 +1,26 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { Container, Row, Col, Card, Form, Button, ListGroup, Badge, Spinner } from 'react-bootstrap'
 
 export default function RagChatbot() {
     const [text, setText] = useState("")
     const [messages, setMessages] = useState([
-        { type: 'bot', content: 'Hello! I\'m your RAG chatbot. Ask me anything!' }
+        { type: 'bot', content: "Hello! I'm your Health Assistant. I can help you find a doctor, check appointments, or answer health and medicine questions." }
     ])
     const [isLoading, setIsLoading] = useState(false)
+    // 1. STATE ADDITION: State to manage the session ID for the backend
+    const [sessionId, setSessionId] = useState(null) 
+    
+    // Ref for auto-scrolling
+    const messagesEndRef = useRef(null);
 
+    // Scroll to the latest message whenever the messages array updates
     useEffect(() => {
-        // Example: Chat with RAG
-        async function askChatbot(message) {
-            const res = await fetch("/api/chat", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message }),
-            });
-            const data = await res.json();
-            console.log("Chatbot says:", data.answer);
-        }
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages]);
 
-        // Example: Book appointment
-        async function bookAppointment() {
-            const res = await fetch("/api/book", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    doctorId: "650f4c9c2a4f9e1234567890",
-                    patient: { name: "Alice", phone: "9876543210", email: "alice@example.com" },
-                    date: "2025-09-20",
-                    time: "10:00",
-                    reason: "Checkup",
-                }),
-            });
-            const data = await res.json();
-            console.log(data);
-        }
+    // Cleanup the unused example functions in useEffect
+    useEffect(() => {
+        console.log("Chatbot component mounted.")
     }, [])
 
     const handleSubmit = async (e) => {
@@ -44,35 +29,59 @@ export default function RagChatbot() {
 
         const userMessage = text;
         setText('');
+        
+        // Add user message to state immediately
         setMessages(prev => [...prev, { type: 'user', content: userMessage }]);
         setIsLoading(true);
 
         try {
-            const res = await fetch("http://localhost:5002/api/chatbot/chat", {
+            const payload = { 
+                query: userMessage,
+                // --- CORRECTION 1: Match FastAPI Pydantic model field name: 'session_id' (snake_case) ---
+                session_id: sessionId 
+            };
+            
+            // --- CORRECTION 2: Match the endpoint URL used in api.py ---
+            // Using absolute path for clarity, ensure the backend is running on 127.0.0.1:5002
+            const res = await fetch("http://127.0.0.1:5002/api/chat", { 
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ query: userMessage }),
+                body: JSON.stringify(payload),
             });
 
             if (!res.ok) {
+                // Handle 503 (Service Unavailable) specifically
+                if (res.status === 503) {
+                     throw new Error(`System is initializing. Try again later. (Status: 503)`);
+                }
+                // Handle 500 (Internal Server Error)
                 throw new Error(`HTTP error! status: ${res.status}`);
             }
 
             const data = await res.json();
+            
+            // CORRECTION: Update the session ID from the response if it's the first message
+            if (!sessionId && data.session_id) {
+                setSessionId(data.session_id);
+            }
+
             setMessages(prev => [...prev, {
                 type: 'bot',
-                content: data.response || 'I could not process that request.'
+                content: data.response || 'I could not process that request.',
+                context: data.context // You might want to display the context (hospital/pharmacy/booking)
             }]);
         } catch (error) {
             console.error('Chatbot Error:', error);
             setMessages(prev => [...prev, {
                 type: 'bot',
-                content: 'Sorry, I encountered an error. Please try again later.'
+                content: `🚨 Error: ${error.message}. Please check the server status or try again.`,
+                context: 'error'
             }]);
         } finally {
             setIsLoading(false);
         }
-    }
+    };
+
 
     return (
         <Container fluid className="h-100 d-flex flex-column bg-light">
@@ -87,8 +96,9 @@ export default function RagChatbot() {
                         </div>
                         <div>
                             <h3 className="mb-0">Ask me about your health queries</h3>
-
                         </div>
+                        {/* Display Session ID for debugging */}
+                        <small className="ms-auto me-2 text-warning">Session ID: {sessionId ? sessionId.substring(0, 8) + '...' : 'New'}</small>
                     </div>
                 </Col>
             </Row>
@@ -104,20 +114,23 @@ export default function RagChatbot() {
                             {messages.map((message, index) => (
                                 <ListGroup.Item
                                     key={index}
-                                    className={`border-0 bg-transparent mb-3 ${message.type === 'user' ? 'text-end' : 'text-start'
-                                        }`}
+                                    className={`border-0 bg-transparent mb-3 ${
+                                        message.type === 'user' ? 'text-end' : 'text-start'
+                                    }`}
                                 >
-                                    <div className={`d-inline-flex align-items-start ${message.type === 'user' ? 'flex-row-reverse' : ''
+                                    <div className={`d-inline-flex align-items-start ${
+                                            message.type === 'user' ? 'flex-row-reverse' : ''
                                         } gap-2`}>
                                         <Badge
-                                            bg={message.type === 'user' ? 'primary' : 'secondary'}
+                                            bg={message.type === 'user' ? 'primary' : (message.context === 'error' ? 'danger' : 'secondary')}
                                             className="p-2"
                                         >
                                             {message.type === 'user' ? '👤' : '🤖'}
                                         </Badge>
                                         <Card
-                                            className={`shadow-sm ${message.type === 'user' ? 'bg-primary text-white' : ''
-                                                }`}
+                                            className={`shadow-sm ${
+                                                message.type === 'user' ? 'bg-primary text-white' : ''
+                                            }`}
                                             style={{ maxWidth: '70%' }}
                                         >
                                             <Card.Body className="py-2 px-3">
@@ -148,6 +161,8 @@ export default function RagChatbot() {
                                     </div>
                                 </ListGroup.Item>
                             )}
+                            {/* Ref for auto-scrolling */}
+                            <div ref={messagesEndRef} />
                         </ListGroup>
                     </div>
                 </Col>
@@ -163,7 +178,7 @@ export default function RagChatbot() {
                                     type="text"
                                     value={text}
                                     onChange={(e) => setText(e.target.value)}
-                                    placeholder="Ask me anything..."
+                                    placeholder="Ask me about hospital hours, doctors, or medicine..."
                                     disabled={isLoading}
                                     onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSubmit(e)}
                                 />

@@ -107,7 +107,11 @@ export const useAuthStore = create((set) => ({
       if (authUser?.phoneNumber) {
         await sendSms({
           phone: `+91${authUser.phoneNumber}`,
-          message: `Appointment Successfully booked at ${data.appointmentTime} with description ${data.description}`,
+          message: `Appointment Successfully booked at ${data.appointmentTime} 
+          Description: ${data.description}
+          Patient Name : ${authUser.fullName}
+          `,
+
         });
       }
 
