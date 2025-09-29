@@ -3,6 +3,7 @@ import { NavLink, Link } from "react-router-dom"
 import { LogOut } from "lucide-react"
 import { useAuthStore } from '../stores/useAuthStore'
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 
 
@@ -12,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 export default function Navbar() {
   const { logout,authUser } = useAuthStore();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   const navLinkClass = ({ isActive }) =>
     `mx-3 fw-semibold text-decoration-none ${isActive ? "text-primary" : "text-dark"}`;
 
@@ -26,41 +28,58 @@ export default function Navbar() {
           className="fw-bold fs-4 text-primary me-4 text-decoration-none"
           style={{ letterSpacing: "1px" }}
         >
-          VitalsHub
+          {t('brand')}
         </Link>
         <NavLink to="/" className={navLinkClass}>
-          Home
+          {t('nav.home')}
         </NavLink>
 
         <NavLink to="/chatbot" className={navLinkClass}>
-          Quick Ask
+          {t('nav.quickAsk')}
         </NavLink>
         <NavLink to="/appointments" className={navLinkClass}>
-          My Appointments
+          {t('nav.appointments')}
         </NavLink>
         <NavLink to="/medical-records" className={navLinkClass}>
-          Medical Records
+          {t('nav.medicalRecords')}
         </NavLink>
         {/* <NavLink to="/chatbot" className={navLinkClass}>Health Assistant</NavLink> */}
 
         <NavLink to="/allPharmacies" className={navLinkClass}>
-          Medicine & Pharmacy
+          {t('nav.pharmacy')}
         </NavLink>
         {/* <NavLink to="/appointments" className={navLinkClass}>Appointments</NavLink> */}
         {/* <NavLink to="/messages" className={navLinkClass}>Messages</NavLink> */}
 
         <NavLink to="/myprofile" className={navLinkClass}>
-          My Profile
+          {t('nav.myProfile')}
         </NavLink>
       </div>
       <div className="d-flex align-items-center">
+        <div className="me-3 d-flex align-items-center">
+          <label htmlFor="lang-select" className="me-2 fw-semibold text-secondary" style={{fontSize:'0.9rem'}}>
+            {t('language.label')}:
+          </label>
+          <select
+            id="lang-select"
+            className="form-select form-select-sm"
+            style={{ width: '130px' }}
+            value={i18n.resolvedLanguage || i18n.language}
+            onChange={(e) => i18n.changeLanguage(e.target.value)}
+          >
+            <option value="en">{t('language.en')}</option>
+            <option value="hi">{t('language.hi')}</option>
+            <option value="pa">{t('language.pa')}</option>
+            <option value="te">{t('language.te')}</option>
+          </select>
+        </div>
         <button
           onClick={() => logout(navigate)}
           className="btn btn-outline-danger d-flex align-items-center fw-bold px-3 py-1 rounded-pill me-3"
           style={{ gap: "8px" }}
         >
           <LogOut size={18} className="me-1" />
-          Logout
+          {t('nav.logout')}
         </button>
         <img
           src={authUser?.profilePic || "/avatar.png"}
@@ -77,3 +96,4 @@ export default function Navbar() {
     </nav>
   );
 }
+

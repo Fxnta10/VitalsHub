@@ -3,10 +3,12 @@ import { useNavigate, Link } from "react-router-dom";
 import { usePharmacyStore } from "../../stores/pharmacyAuthStore";
 import { LogIn, Loader } from "lucide-react";
 import toast from "react-hot-toast";
+import { useTranslation } from 'react-i18next';
 
 export default function PharmacyLogin() {
   const { login, isLoggingIn } = usePharmacyStore();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [formData, setFormData] = useState({
     licenseNumber: "",
@@ -22,10 +24,10 @@ export default function PharmacyLogin() {
     e.preventDefault();
     const result = await login(formData);
     if (result.success) {
-      toast.success("Login Successful");
+      toast.success(t('pharmacyLogin.toasts.success'));
       navigate("/pharmacy/dashboard");
     } else {
-      toast.error("Invalid Credentials");
+      toast.error(t('pharmacyLogin.toasts.invalid'));
     }
   };
 
@@ -47,13 +49,13 @@ export default function PharmacyLogin() {
               className="fw-bold mb-2"
               style={{ color: "#2d3748" }}
             >
-              Pharmacy Login
+              {t('pharmacyLogin.title')}
             </h2>
             <p
               className="text-secondary"
               style={{ fontSize: "1.05rem" }}
             >
-              Enter your credentials to access your account
+              {t('pharmacyLogin.subtitle')}
             </p>
           </div>
 
@@ -64,7 +66,7 @@ export default function PharmacyLogin() {
                 className="fw-medium mb-2"
                 style={{ color: "#4a5568" }}
               >
-                License Number
+                {t('pharmacyLogin.fields.licenseNumber')}
               </label>
               <input
                 type="text"
@@ -77,6 +79,7 @@ export default function PharmacyLogin() {
                   borderRadius: "8px",
                 }}
                 required
+                placeholder={t('pharmacyLogin.fields.licenseNumberPlaceholder')}
               />
             </div>
 
@@ -85,7 +88,7 @@ export default function PharmacyLogin() {
                 className="fw-medium mb-2"
                 style={{ color: "#4a5568" }}
               >
-                Password
+                {t('pharmacyLogin.fields.password')}
               </label>
               <input
                 type="password"
@@ -98,6 +101,7 @@ export default function PharmacyLogin() {
                   borderRadius: "8px",
                 }}
                 required
+                placeholder={t('pharmacyLogin.fields.passwordPlaceholder')}
               />
             </div>
 
@@ -119,22 +123,22 @@ export default function PharmacyLogin() {
                 {isLoggingIn ? (
                   <>
                     <Loader size={20} className="me-2 animate-spin" />
-                    Logging in...
+                    {t('pharmacyLogin.buttons.loggingIn')}
                   </>
                 ) : (
-                  "Login"
+                  t('pharmacyLogin.buttons.login')
                 )}
               </button>
 
               {/* Link to Signup */}
               <p className="text-center mt-4 mb-0">
-                Don’t have an account?{" "}
+                {t('pharmacyLogin.links.noAccount')} {" "}
                 <Link
                   to="/pharmacy/signup"
                   className="text-decoration-none"
                   style={{ color: "#4f46e5" }}
                 >
-                  Register
+                  {t('pharmacyLogin.links.register')}
                 </Link>
               </p>
             </div>

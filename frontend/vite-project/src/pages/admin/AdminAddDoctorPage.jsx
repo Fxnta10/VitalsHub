@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../stores/adminAuthStore";
 import toast from "react-hot-toast";
 import AdminNavbar from "../../components/AdminNavbar";
+import { useTranslation } from 'react-i18next';
 export default function AdminAddDoctorPage() {
   const { addDoctor, isAddingDoc } = useAuthStore();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -23,30 +25,30 @@ export default function AdminAddDoctorPage() {
     const { name, email, specialisation, start, end } = formData;
 
     if (!name.trim()) {
-      newErrors.name = "Name is required";
+      newErrors.name = t('adminDoctors.add.errors.nameRequired');
     }
 
     if (!email.trim()) {
-      newErrors.email = "Email is required";
+      newErrors.email = t('adminDoctors.add.errors.emailRequired');
     } else {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
-        newErrors.email = "Please enter a valid email address";
+        newErrors.email = t('adminDoctors.add.errors.emailInvalid');
       }
     }
 
     if (!specialisation.trim()) {
-      newErrors.specialisation = "Specialisation is required";
+      newErrors.specialisation = t('adminDoctors.add.errors.specialisationRequired');
     }
     if (start && (isNaN(start) || start < 0 || start > 23)) {
-      newErrors.start = "Start time must be between 0 and 23";
+      newErrors.start = t('adminDoctors.add.errors.startRange');
     }
     if (end && (isNaN(end) || end < 0 || end > 23)) {
-      newErrors.end = "End time must be between 0 and 23";
+      newErrors.end = t('adminDoctors.add.errors.endRange');
     }
     if (start && end && parseInt(start) >= parseInt(end)) {
-      newErrors.start = "Start time must be before end time";
-      newErrors.end = "End time must be after start time";
+      newErrors.start = t('adminDoctors.add.errors.startBeforeEnd');
+      newErrors.end = t('adminDoctors.add.errors.startBeforeEnd');
     }
 
     setErrors(newErrors);
@@ -57,7 +59,7 @@ export default function AdminAddDoctorPage() {
     e.preventDefault();
 
     if (!validateForm()) {
-      toast.error("Please fix the form errors");
+      toast.error(t('adminDoctors.add.errors.fixForm'));
       return;
     }
 
@@ -77,12 +79,12 @@ export default function AdminAddDoctorPage() {
       const result = await addDoctor(doctorData);
 
       if (result.success) {
-        toast.success("Doctor added successfully!");
+        toast.success(t('adminDoctors.add.toasts.success'));
         navigate("/admin/doctors");
       }
     } catch (error) {
       console.error("Error adding doctor:", error);
-      toast.error("Failed to add doctor");
+      toast.error(t('adminDoctors.add.toasts.failed'));
     }
   };
 
@@ -110,10 +112,10 @@ export default function AdminAddDoctorPage() {
       
       <div className="container" style={{ maxWidth: "800px" }}>
         <h2 className="fw-bold mb-2" style={{ color: "#2d3748" }}>
-          Add New Doctor
+          {t('adminDoctors.add.title')}
         </h2>
         <p className="text-secondary mb-4" style={{ fontSize: "1.1rem" }}>
-          Fill in the doctor's information to add them to the system
+          {t('adminDoctors.add.subtitle')}
         </p>
 
         <div className="bg-white rounded-3 shadow-sm p-4" style={{ border: "1px solid #e2e8f0" }}>
@@ -121,7 +123,7 @@ export default function AdminAddDoctorPage() {
             {/* Name Field */}
             <div className="mb-4">
               <label htmlFor="name" className="fw-bold mb-2" style={{ color: "#2d3748" }}>
-                Full Name *
+                {t('adminDoctors.add.fields.fullName')} *
               </label>
               <input
                 id="name"
@@ -129,7 +131,7 @@ export default function AdminAddDoctorPage() {
                 type="text"
                 value={formData.name}
                 onChange={handleInputChange("name")}
-                placeholder="Dr. John Doe"
+                placeholder={t('adminDoctors.add.placeholders.name')}
                 className={`form-control ${errors.name ? 'is-invalid' : ''}`}
                 style={{ padding: "12px", borderRadius: "8px" }}
                 required
@@ -142,7 +144,7 @@ export default function AdminAddDoctorPage() {
             {/* Email Field */}
             <div className="mb-4">
               <label htmlFor="email" className="fw-bold mb-2" style={{ color: "#2d3748" }}>
-                Email Address *
+                {t('adminDoctors.add.fields.email')} *
               </label>
               <input
                 id="email"
@@ -150,7 +152,7 @@ export default function AdminAddDoctorPage() {
                 type="email"
                 value={formData.email}
                 onChange={handleInputChange("email")}
-                placeholder="doctor@hospital.com"
+                placeholder={t('adminDoctors.add.placeholders.email')}
                 className={`form-control ${errors.email ? 'is-invalid' : ''}`}
                 style={{ padding: "12px", borderRadius: "8px" }}
                 required
@@ -163,7 +165,7 @@ export default function AdminAddDoctorPage() {
             {/* Specialisation Field */}
             <div className="mb-4">
               <label htmlFor="specialisation" className="fw-bold mb-2" style={{ color: "#2d3748" }}>
-                Specialisation *
+                {t('adminDoctors.add.fields.specialisation')} *
               </label>
               <input
                 id="specialisation"
@@ -171,7 +173,7 @@ export default function AdminAddDoctorPage() {
                 type="text"
                 value={formData.specialisation}
                 onChange={handleInputChange("specialisation")}
-                placeholder="Cardiology, Neurology, etc."
+                placeholder={t('adminDoctors.add.placeholders.specialisation')}
                 className={`form-control ${errors.specialisation ? 'is-invalid' : ''}`}
                 style={{ padding: "12px", borderRadius: "8px" }}
                 required
@@ -185,7 +187,7 @@ export default function AdminAddDoctorPage() {
             <div className="row mb-4">
               <div className="col-md-6">
                 <label htmlFor="start" className="fw-bold mb-2" style={{ color: "#2d3748" }}>
-                  Shift Start (24hr)
+                  {t('adminDoctors.add.fields.shiftStart')}
                 </label>
                 <input
                   id="start"
@@ -195,7 +197,7 @@ export default function AdminAddDoctorPage() {
                   max="23"
                   value={formData.start}
                   onChange={handleInputChange("start")}
-                  placeholder="9"
+                  placeholder={t('adminDoctors.add.placeholders.start')}
                   className={`form-control ${errors.start ? 'is-invalid' : ''}`}
                   style={{ padding: "12px", borderRadius: "8px" }}
                 />
@@ -206,7 +208,7 @@ export default function AdminAddDoctorPage() {
 
               <div className="col-md-6">
                 <label htmlFor="end" className="fw-bold mb-2" style={{ color: "#2d3748" }}>
-                  Shift End (24hr)
+                  {t('adminDoctors.add.fields.shiftEnd')}
                 </label>
                 <input
                   id="end"
@@ -216,7 +218,7 @@ export default function AdminAddDoctorPage() {
                   max="23"
                   value={formData.end}
                   onChange={handleInputChange("end")}
-                  placeholder="17"
+                  placeholder={t('adminDoctors.add.placeholders.end')}
                   className={`form-control ${errors.end ? 'is-invalid' : ''}`}
                   style={{ padding: "12px", borderRadius: "8px" }}
                 />
@@ -239,7 +241,7 @@ export default function AdminAddDoctorPage() {
                   style={{ width: "1.2em", height: "1.2em" }}
                 />
                 <label htmlFor="isActive" className="form-check-label ms-2" style={{ color: "#2d3748" }}>
-                  Doctor is currently active
+                  {t('adminDoctors.add.fields.isActive')}
                 </label>
               </div>
             </div>
@@ -260,10 +262,10 @@ export default function AdminAddDoctorPage() {
                 {isAddingDoc ? (
                   <>
                     <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                    Adding...
+                    {t('adminDoctors.add.buttons.adding')}
                   </>
                 ) : (
-                  "Add Doctor"
+                  t('adminDoctors.add.buttons.addDoctor')
                 )}
               </button>
 
@@ -278,7 +280,7 @@ export default function AdminAddDoctorPage() {
                   fontWeight: "500" 
                 }}
               >
-                Cancel
+                {t('adminDoctors.add.buttons.cancel')}
               </button>
             </div>
           </form>

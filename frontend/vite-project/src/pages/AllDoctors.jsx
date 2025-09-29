@@ -1,10 +1,12 @@
 import React, { useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "../stores/useAuthStore";
+import { useTranslation } from 'react-i18next';
 
 export default function AllDoctors() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t, i18n } = useTranslation();
   const {
     hospitalDoctors: doctors,
     isLoading,
@@ -27,13 +29,14 @@ export default function AllDoctors() {
   }, [hospitalId, navigate, fetchDoctors]);
 
   const handleSelectDoctor = (doctor) => {
+    const localizedDoctorName = (i18n.language?.startsWith('hi') && doctor.name_hi) ? doctor.name_hi : doctor.name;
     navigate("/create-appointment", {
       state: {
         hospitalId,
         hospitalName,
         hospitalAddress,
         doctorId: doctor._id,
-        doctorName: doctor.name,
+        doctorName: localizedDoctorName,
         doctorSpecialisation: doctor.specialisation,
         doctorEmail: doctor.email,
       },
@@ -58,13 +61,13 @@ export default function AllDoctors() {
                 role="status"
                 style={{ width: "3rem", height: "3rem" }}
               >
-                <span className="visually-hidden">Loading...</span>
+                <span className="visually-hidden">{t('loading')}</span>
               </div>
               <p
                 className="text-secondary"
                 style={{ fontSize: "1.1rem", fontWeight: "500" }}
               >
-                Loading doctors...
+                {t('doctors.loading')}
               </p>
             </div>
           </div>
@@ -86,10 +89,10 @@ export default function AllDoctors() {
                 👨‍⚕️
               </div>
               <h2 className="fw-bold mb-3" style={{ color: "#2d3748" }}>
-                No Doctors Found
+                {t('doctors.noDoctorsTitle')}
               </h2>
               <p className="text-secondary mb-4" style={{ fontSize: "1.1rem" }}>
-                No doctors are currently available at {hospitalName}.
+                {t('doctors.noDoctorsSubtitle', { hospital: hospitalName })}
               </p>
               <button
                 onClick={handleBackToHospitals}
@@ -97,7 +100,7 @@ export default function AllDoctors() {
                 style={{ borderRadius: "8px", padding: "12px 24px" }}
               >
                 <span className="me-2">←</span>
-                Back to Hospitals
+                {t('doctors.backToHospitals')}
               </button>
             </div>
           </div>
@@ -118,13 +121,13 @@ export default function AllDoctors() {
               style={{ borderRadius: "8px", padding: "8px 16px" }}
             >
               <span className="me-2">←</span>
-              Back to Hospitals
+              {t('doctors.backToHospitals')}
             </button>
             <h2 className="fw-bold mb-2" style={{ color: "#2d3748" }}>
-              Available Doctors
+              {t('doctors.headerTitle')}
             </h2>
             <p className="text-secondary mb-0" style={{ fontSize: "1.1rem" }}>
-              Select a doctor from {hospitalName} to book your appointment.
+              {t('doctors.headerSubtitle', { hospital: hospitalName })}
             </p>
           </div>
         </div>
@@ -200,7 +203,7 @@ export default function AllDoctors() {
                     className="mb-0 text-secondary"
                     style={{ fontSize: "0.9rem" }}
                   >
-                    Doctors Available
+                    {t('doctors.stats.doctorsAvailable')}
                   </p>
                 </div>
               </div>
@@ -237,7 +240,7 @@ export default function AllDoctors() {
                     className="mb-0 text-secondary"
                     style={{ fontSize: "0.9rem" }}
                   >
-                    Currently Available
+                    {t('doctors.stats.currentlyAvailable')}
                   </p>
                 </div>
               </div>
@@ -274,7 +277,7 @@ export default function AllDoctors() {
                     className="mb-0 text-secondary"
                     style={{ fontSize: "0.9rem" }}
                   >
-                    Specializations
+                    {t('doctors.stats.specializations')}
                   </p>
                 </div>
               </div>
@@ -285,7 +288,7 @@ export default function AllDoctors() {
         {/* Doctors Grid */}
         <div className="mb-5">
           <h5 className="fw-bold mb-3" style={{ color: "#2d3748" }}>
-            Medical Staff
+            {t('doctors.gridTitle')}
           </h5>
           <div className="row g-4">
             {doctors.map((doctor) => (
@@ -320,7 +323,7 @@ export default function AllDoctors() {
 
                     <div className="text-center mb-3">
                       <h6 className="fw-bold mb-2" style={{ color: "#2d3748" }}>
-                        {doctor.name}
+                        {i18n.language?.startsWith('hi') && doctor.name_hi ? doctor.name_hi : doctor.name}
                       </h6>
 
                       {/* Doctor Information */}
@@ -336,7 +339,7 @@ export default function AllDoctors() {
                               fontSize: "0.8rem",
                             }}
                           >
-                            {doctor.specialisation}
+                            {t(`specialisations.${doctor.specialisation}`, { defaultValue: doctor.specialisation })}
                           </span>
                         </div>
                         <div className="d-flex align-items-center justify-content-center mb-2">
@@ -382,8 +385,8 @@ export default function AllDoctors() {
                             style={{ width: "6px", height: "6px" }}
                           ></span>
                           {doctor.isActive
-                            ? "Available Now"
-                            : "Currently Unavailable"}
+                            ? t('doctors.status.availableNow')
+                            : t('doctors.status.currentlyUnavailable')}
                         </span>
                       </div>
                     </div>
@@ -404,8 +407,8 @@ export default function AllDoctors() {
                     >
                       <span className="me-2">📅</span>
                       {doctor.isActive
-                        ? "Book Appointment"
-                        : "Currently Unavailable"}
+                        ? t('doctors.actions.bookAppointment')
+                        : t('doctors.status.currentlyUnavailable')}
                     </button>
                   </div>
                 </div>
@@ -417,9 +420,7 @@ export default function AllDoctors() {
         {/* Summary */}
         <div className="text-center">
           <p className="text-secondary" style={{ fontSize: "1rem" }}>
-            Found <span className="fw-bold text-primary">{doctors.length}</span>{" "}
-            doctor{doctors.length !== 1 ? "s" : ""} at{" "}
-            <span className="fw-bold text-primary">{hospitalName}</span>
+            {t('doctors.summary', { count: doctors.length, plural: doctors.length !== 1 ? 's' : '', hospital: hospitalName })}
           </p>
         </div>
       </div>

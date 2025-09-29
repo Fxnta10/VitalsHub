@@ -1,10 +1,12 @@
 import React from "react";
 import { Link, useNavigate, Outlet, useLocation } from "react-router-dom";
 import { User, Shield, Pill } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 export default function SingleLogin() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t, i18n } = useTranslation();
 
   // Extract selected login type from URL
   const getSelectedLoginType = () => {
@@ -18,24 +20,24 @@ export default function SingleLogin() {
   const loginTypes = [
     {
       id: "user",
-      title: "Patient Login",
-      description: "Access your medical records and book appointments",
+      title: t('singleLogin.types.user.title'),
+      description: t('singleLogin.types.user.description'),
       icon: User,
       bgColor: "#4f46e5",
       redirectPath: "/single-login/user",
     },
     {
       id: "admin",
-      title: "Admin Login",
-      description: "Manage hospitals, doctors and system operations",
+      title: t('singleLogin.types.admin.title'),
+      description: t('singleLogin.types.admin.description'),
       icon: Shield,
       bgColor: "#059669",
       redirectPath: "/single-login/admin",
     },
     {
       id: "pharmacy",
-      title: "Pharmacy Login",
-      description: "Manage prescriptions and inventory",
+      title: t('singleLogin.types.pharmacy.title'),
+      description: t('singleLogin.types.pharmacy.description'),
       icon: Pill,
       bgColor: "#dc2626",
       redirectPath: "/single-login/pharmacy",
@@ -47,8 +49,26 @@ export default function SingleLogin() {
   };
 
   return (
-    <div style={{ background: "#f6f8fb", minHeight: "100vh" }}>
+    <div key={i18n.language} style={{ background: "#f6f8fb", minHeight: "100vh" }}>
       <div className="container py-4">
+        {/* Language Selector */}
+        <div className="d-flex justify-content-end mb-2">
+          <label htmlFor="single-login-lang-select" className="me-2 fw-semibold text-secondary" style={{fontSize:'0.9rem'}}>
+            {t('language.label')}:
+          </label>
+          <select
+            id="single-login-lang-select"
+            className="form-select form-select-sm"
+            style={{ width: '130px' }}
+            value={i18n.resolvedLanguage || i18n.language}
+            onChange={(e) => i18n.changeLanguage(e.target.value)}
+          >
+            <option value="en">{t('language.en')}</option>
+            <option value="hi">{t('language.hi')}</option>
+            <option value="pa">{t('language.pa')}</option>
+            <option value="te">{t('language.te')}</option>
+          </select>
+        </div>
         <div className="row justify-content-center">
           <div className="col-lg-10">
             {/* Header */}
@@ -57,10 +77,10 @@ export default function SingleLogin() {
                 className="fw-bold mb-2"
                 style={{ color: "#2d3748", fontSize: "2rem" }}
               >
-                Welcome to VitalsHub
+                {t('singleLogin.header.title', { brand: t('brand') })}
               </h1>
               <p className="text-secondary mb-0" style={{ fontSize: "1rem" }}>
-                Select your login type and enter credentials
+                {t('singleLogin.header.subtitle')}
               </p>
             </div>
 
@@ -70,7 +90,7 @@ export default function SingleLogin() {
                 className="fw-bold mb-3 text-center"
                 style={{ color: "#2d3748" }}
               >
-                Choose Login Type
+                {t('singleLogin.chooseType')}
               </h6>
               <div className="row g-2">
                 {loginTypes.map((type) => {
@@ -184,14 +204,14 @@ export default function SingleLogin() {
                   className="text-decoration-none text-secondary"
                   style={{ fontSize: "0.85rem" }}
                 >
-                  Forgot Password?
+                  {t('singleLogin.links.forgotPassword')}
                 </Link>
                 <Link
                   to="/help"
                   className="text-decoration-none text-secondary"
                   style={{ fontSize: "0.85rem" }}
                 >
-                  Need Help?
+                  {t('singleLogin.links.needHelp')}
                 </Link>
               </div>
             </div>

@@ -2,11 +2,13 @@ import React, { useEffect, useState } from "react";
 import { useAuthStore } from "../stores/useAuthStore";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Toast, ToastContainer, Button, Form, Card, Row, Col, Container } from "react-bootstrap";
+import { useTranslation } from 'react-i18next';
 
 export default function CreateAppointment() {
   const { authUser, createAppointment, isLoading } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
 
   const {
     hospitalId,
@@ -44,7 +46,7 @@ export default function CreateAppointment() {
   // Redirect if doctor/hospital not selected
   useEffect(() => {
     if (!hospitalId || !doctorId) {
-      alert("Please select a doctor first"); // simpler than toast for now
+      alert(t('createAppointment.errors.notSelected')); // simpler than toast for now
       navigate("/hospitals");
     }
   }, [hospitalId, doctorId, navigate]);
@@ -52,7 +54,7 @@ export default function CreateAppointment() {
   const validateForm = () => {
     const { hospitalId, patientId, doctorId, appointmentTime, description } = formData;
     if (!hospitalId || !patientId || !doctorId || !appointmentTime || !description) {
-      setError("All fields are required");
+      setError(t('createAppointment.errors.required'));
       return false;
     }
     return true;
@@ -72,11 +74,11 @@ export default function CreateAppointment() {
       // Remove the navigation here so toast stays visible
       // navigate("/"); // do NOT navigate immediately
     } else {
-      setError("Appointment booking failed. Please try again.");
+      setError(t('createAppointment.errors.failed'));
     }
   } catch (err) {
     console.error("Appointment creation error:", err);
-    setError("An unexpected error occurred");
+    setError(t('createAppointment.errors.unexpected'));
   }
 };
 
@@ -95,27 +97,27 @@ export default function CreateAppointment() {
   return (
     <Container className="my-4">
       <Button variant="link" className="mb-3" onClick={handleBackToDoctors}>
-        ← Back to Doctors
+        {t('createAppointment.back')}
       </Button>
 
       <Card className="shadow-sm p-4">
-        <Card.Title className="text-center mb-4">Book Appointment</Card.Title>
+        <Card.Title className="text-center mb-4">{t('createAppointment.title')}</Card.Title>
         <Card.Text className="text-center mb-4 text-muted">
-          Fill in the details to book your appointment
+          {t('createAppointment.subtitle')}
         </Card.Text>
 
         {/* Selected Hospital & Doctor Info */}
         <Row className="mb-4">
           <Col md={6}>
             <Card bg="info" text="white" className="p-3 mb-2">
-              <Card.Title>Selected Hospital</Card.Title>
+              <Card.Title>{t('createAppointment.selectedHospital')}</Card.Title>
               <Card.Text>{hospitalName}</Card.Text>
               <Card.Text className="small">{hospitalAddress}</Card.Text>
             </Card>
           </Col>
           <Col md={6}>
             <Card bg="success" text="white" className="p-3 mb-2">
-              <Card.Title>Selected Doctor</Card.Title>
+              <Card.Title>{t('createAppointment.selectedDoctor')}</Card.Title>
               <Card.Text>{doctorName}</Card.Text>
               <Card.Text className="small">{doctorSpecialisation}</Card.Text>
               <Card.Text className="small">{doctorEmail}</Card.Text>
@@ -128,7 +130,7 @@ export default function CreateAppointment() {
         {/* Appointment Form */}
         <Form onSubmit={handleSubmit}>
           <Form.Group className="mb-3">
-            <Form.Label>Appointment Date & Time *</Form.Label>
+            <Form.Label>{t('createAppointment.form.appointmentDateTime')}</Form.Label>
             <Form.Control
               type="datetime-local"
               value={formData.appointmentTime}
@@ -139,13 +141,13 @@ export default function CreateAppointment() {
           </Form.Group>
 
           <Form.Group className="mb-3">
-            <Form.Label>Description / Symptoms *</Form.Label>
+            <Form.Label>{t('createAppointment.form.descriptionLabel')}</Form.Label>
             <Form.Control
               as="textarea"
               rows={4}
               value={formData.description}
               onChange={handleInputChange("description")}
-              placeholder="Describe your symptoms or reason for appointment..."
+              placeholder={t('createAppointment.form.descriptionPlaceholder')}
               required
             />
           </Form.Group>
@@ -153,7 +155,7 @@ export default function CreateAppointment() {
           <Form.Group className="mb-3">
             <Form.Check
               type="checkbox"
-              label="This is an emergency appointment"
+              label={t('createAppointment.form.emergencyLabel')}
               checked={formData.isEmergency}
               onChange={(e) => setFormData({ ...formData, isEmergency: e.target.checked })}
             />
@@ -161,10 +163,10 @@ export default function CreateAppointment() {
 
           <div className="d-flex gap-2">
             <Button variant="secondary" className="flex-grow-1" onClick={handleBackToDoctors}>
-              Cancel
+              {t('createAppointment.buttons.cancel')}
             </Button>
             <Button variant="primary" type="submit" className="flex-grow-1" disabled={isLoading}>
-              {isLoading ? "Booking..." : "Book Appointment"}
+              {isLoading ? t('createAppointment.buttons.booking') : t('createAppointment.buttons.bookAppointment')}
             </Button>
           </div>
         </Form>
@@ -176,11 +178,11 @@ export default function CreateAppointment() {
 navigate("/");
   }} bg="success">
     <Toast.Header closeButton={true}>
-      <strong className="me-auto">Appointment Confirmed ✅</strong>
-      <small>Just now</small>
+      <strong className="me-auto">{t('createAppointment.toast.title')}</strong>
+      <small>{t('createAppointment.toast.justNow')}</small>
     </Toast.Header>
     <Toast.Body>
-      Your appointment with Dr. {doctorName} on {new Date(formData.appointmentTime).toLocaleString()} has been booked successfully!
+      {t('createAppointment.toast.body', { doctor: doctorName, dateTime: new Date(formData.appointmentTime).toLocaleString() })}
     </Toast.Body>
   </Toast>
 </ToastContainer>

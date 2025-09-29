@@ -5,11 +5,13 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import AdminNavbar from "../../components/AdminNavbar";
+import { useTranslation } from 'react-i18next';
 
 export default function AdminEditDoctor() {
   const { getDoctor, updateDoctor } = useAuthStore();
   const { id: doctorId } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -45,28 +47,28 @@ export default function AdminEditDoctor() {
     const { name, email, start, end, specialisation } = formData;
 
     if (!name.trim() || !email.trim() || !specialisation.trim()) {
-      toast.error("Please fill in all required fields");
+      toast.error(t('adminDoctors.add.errors.fixForm'));
       return false;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      toast.error("Please enter a valid email address");
+      toast.error(t('adminDoctors.add.errors.emailInvalid'));
       return false;
     }
 
     if (start && (isNaN(start) || start < 0 || start > 23)) {
-      toast.error("Start time must be a number between 0 and 23");
+      toast.error(t('adminDoctors.add.errors.startRange'));
       return false;
     }
 
     if (end && (isNaN(end) || end < 0 || end > 23)) {
-      toast.error("End time must be a number between 0 and 23");
+      toast.error(t('adminDoctors.add.errors.endRange'));
       return false;
     }
 
     if (start && end && parseInt(start) >= parseInt(end)) {
-      toast.error("Start time must be before end time");
+      toast.error(t('adminDoctors.add.errors.startBeforeEnd'));
       return false;
     }
 
@@ -94,14 +96,14 @@ export default function AdminEditDoctor() {
       });
 
       if (result.success) {
-        toast.success("Doctor updated successfully!");
+        toast.success(t('adminDoctors.edit.toasts.success'));
         navigate("/admin/doctors");
       } else {
-        toast.error("Failed to update doctor");
+        toast.error(t('adminDoctors.edit.toasts.failed'));
       }
     } catch (error) {
       console.error("Error updating doctor:", error);
-      toast.error("An error occurred while updating the doctor");
+      toast.error(t('adminDoctors.edit.toasts.error'));
     }
   };
   return (
@@ -110,10 +112,10 @@ export default function AdminEditDoctor() {
     <div style={{ background: "#f6f8fb", minHeight: "100vh", padding: "32px 0" }}>
       <div className="container" style={{ maxWidth: "800px" }}>
         <h2 className="fw-bold mb-2" style={{ color: "#2d3748" }}>
-          Edit Doctor
+          {t('adminDoctors.edit.title')}
         </h2>
         <p className="text-secondary mb-4" style={{ fontSize: "1.1rem" }}>
-          Update doctor's information in the system
+          {t('adminDoctors.edit.subtitle')}
         </p>
 
         <div className="bg-white rounded-3 shadow-sm p-4" style={{ border: "1px solid #e2e8f0" }}>
@@ -121,14 +123,14 @@ export default function AdminEditDoctor() {
             {/* Name Field */}
             <div className="mb-4">
               <label htmlFor="name" className="fw-bold mb-2" style={{ color: "#2d3748" }}>
-                Full Name *
+                {t('adminDoctors.edit.fields.fullName')} *
               </label>
               <input
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 type="text"
-                placeholder="Dr. John Doe"
+                placeholder={t('adminDoctors.edit.placeholders.name')}
                 className="form-control"
                 style={{ padding: "12px", borderRadius: "8px" }}
                 required
@@ -138,14 +140,14 @@ export default function AdminEditDoctor() {
             {/* Email Field */}
             <div className="mb-4">
               <label htmlFor="email" className="fw-bold mb-2" style={{ color: "#2d3748" }}>
-                Email Address *
+                {t('adminDoctors.edit.fields.email')} *
               </label>
               <input
                 id="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 type="email"
-                placeholder="doctor@hospital.com"
+                placeholder={t('adminDoctors.edit.placeholders.email')}
                 className="form-control"
                 style={{ padding: "12px", borderRadius: "8px" }}
                 required
@@ -155,14 +157,14 @@ export default function AdminEditDoctor() {
             {/* Specialisation Field */}
             <div className="mb-4">
               <label htmlFor="specialisation" className="fw-bold mb-2" style={{ color: "#2d3748" }}>
-                Specialisation *
+                {t('adminDoctors.edit.fields.specialisation')} *
               </label>
               <input
                 id="specialisation"
                 value={formData.specialisation}
                 onChange={(e) => setFormData({ ...formData, specialisation: e.target.value })}
                 type="text"
-                placeholder="Cardiology, Neurology, etc."
+                placeholder={t('adminDoctors.edit.placeholders.specialisation')}
                 className="form-control"
                 style={{ padding: "12px", borderRadius: "8px" }}
                 required
@@ -173,7 +175,7 @@ export default function AdminEditDoctor() {
             <div className="row mb-4">
               <div className="col-md-6">
                 <label htmlFor="start" className="fw-bold mb-2" style={{ color: "#2d3748" }}>
-                  Shift Start (24hr)
+                  {t('adminDoctors.edit.fields.shiftStart')}
                 </label>
                 <input
                   id="start"
@@ -182,7 +184,7 @@ export default function AdminEditDoctor() {
                   type="number"
                   min="0"
                   max="23"
-                  placeholder="9"
+                  placeholder={t('adminDoctors.edit.placeholders.start')}
                   className="form-control"
                   style={{ padding: "12px", borderRadius: "8px" }}
                 />
@@ -190,7 +192,7 @@ export default function AdminEditDoctor() {
 
               <div className="col-md-6">
                 <label htmlFor="end" className="fw-bold mb-2" style={{ color: "#2d3748" }}>
-                  Shift End (24hr)
+                  {t('adminDoctors.edit.fields.shiftEnd')}
                 </label>
                 <input
                   id="end"
@@ -199,7 +201,7 @@ export default function AdminEditDoctor() {
                   type="number"
                   min="0"
                   max="23"
-                  placeholder="17"
+                  placeholder={t('adminDoctors.edit.placeholders.end')}
                   className="form-control"
                   style={{ padding: "12px", borderRadius: "8px" }}
                 />
@@ -218,7 +220,7 @@ export default function AdminEditDoctor() {
                   style={{ width: "1.2em", height: "1.2em" }}
                 />
                 <label htmlFor="isActive" className="form-check-label ms-2" style={{ color: "#2d3748" }}>
-                  Doctor is currently active
+                  {t('adminDoctors.edit.fields.isActive')}
                 </label>
               </div>
             </div>
@@ -235,7 +237,7 @@ export default function AdminEditDoctor() {
                   fontWeight: "500"
                 }}
               >
-                Update Doctor
+                {t('adminDoctors.edit.buttons.update')}
               </button>
 
               <button
@@ -249,7 +251,7 @@ export default function AdminEditDoctor() {
                   fontWeight: "500"
                 }}
               >
-                Cancel
+                {t('adminDoctors.edit.buttons.cancel')}
               </button>
             </div>
           </form>

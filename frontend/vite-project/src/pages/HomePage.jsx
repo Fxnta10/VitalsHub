@@ -2,10 +2,18 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '../stores/useAuthStore'
 import { CalendarDays, FolderOpen, Upload, Bell } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 
 export default function HomePage() {
   const { authUser } = useAuthStore();
+  const { t, i18n } = useTranslation();
+  const firstName = authUser?.fullName ? authUser.fullName.split(' ')[0] : '';
+  // Localized sample dates for demo content
+  const locale = i18n.language;
+  const upcomingAppointmentDate = new Date('2024-07-15');
+  const recentRecordDate = new Date('2024-06-20');
+  const monthYearLocalized = new Date('2024-06-01').toLocaleDateString(locale, { month: 'long', year: 'numeric' });
 
   return (
     <div style={{ background: "#f6f8fb", minHeight: "100vh" }}>
@@ -14,10 +22,12 @@ export default function HomePage() {
         <div className="d-flex justify-content-between align-items-start mb-5">
           <div>
             <h2 className="fw-bold mb-2" style={{ color: "#2d3748" }}>
-              Welcome back{authUser?.fullName ? `, ${authUser.fullName.split(" ")[0]}` : ""}!
+              {firstName
+                ? t('homepage.welcomeBackName', { name: firstName })
+                : t('homepage.welcomeBack')}
             </h2>
             <p className="text-secondary mb-0" style={{ fontSize: "1.1rem" }}>
-              Here's a summary of your recent activity and quick access to common tasks.
+              {t('homepage.summary')}
             </p>
           </div>
           <button 
@@ -39,7 +49,7 @@ export default function HomePage() {
 
         {/* Quick Actions */}
         <div className="mb-5">
-          <h5 className="fw-bold mb-3" style={{ color: "#2d3748" }}>Quick Actions</h5>
+          <h5 className="fw-bold mb-3" style={{ color: "#2d3748" }}>{t('homepage.quickActions')}</h5>
           <div className="row g-3">
             <div className="col-md-6">
               <Link
@@ -56,9 +66,9 @@ export default function HomePage() {
                 <div className="card-body d-flex align-items-center p-4">
                   <CalendarDays size={24} className="text-white me-3" />
                   <div>
-                    <h6 className="fw-bold mb-1 text-white">Schedule Appointment</h6>
+                    <h6 className="fw-bold mb-1 text-white">{t('homepage.scheduleAppointment.title')}</h6>
                     <p className="mb-0 text-white-50" style={{ fontSize: "0.9rem" }}>
-                      Book a consultation with a doctor
+                      {t('homepage.scheduleAppointment.subtitle')}
                     </p>
                   </div>
                 </div>
@@ -80,9 +90,9 @@ export default function HomePage() {
                 <div className="card-body d-flex align-items-center p-4">
                   <FolderOpen size={24} className="text-primary me-3" />
                   <div>
-                    <h6 className="fw-bold mb-1" style={{ color: "#2d3748" }}>Medical Records</h6>
+                    <h6 className="fw-bold mb-1" style={{ color: "#2d3748" }}>{t('homepage.medicalRecords.title')}</h6>
                     <p className="mb-0 text-secondary" style={{ fontSize: "0.9rem" }}>
-                      View your health documents
+                      {t('homepage.medicalRecords.subtitle')}
                     </p>
                   </div>
                 </div>
@@ -93,7 +103,7 @@ export default function HomePage() {
 
         {/* Recent Activity */}
         <div className="mb-5">
-          <h5 className="fw-bold mb-3" style={{ color: "#2d3748" }}>Recent Activity</h5>
+          <h5 className="fw-bold mb-3" style={{ color: "#2d3748" }}>{t('homepage.recentActivity')}</h5>
           <div className="card border-0 shadow-sm mb-3">
             <div className="card-body p-4">
               <div className="d-flex align-items-center justify-content-between">
@@ -109,14 +119,14 @@ export default function HomePage() {
                     <CalendarDays size={24} className="text-primary" />
                   </div>
                   <div>
-                    <h6 className="fw-bold mb-1" style={{ color: "#2d3748" }}>Upcoming Appointment</h6>
+                    <h6 className="fw-bold mb-1" style={{ color: "#2d3748" }}>{t('homepage.upcomingAppointment')}</h6>
                     <p className="text-secondary mb-0" style={{ fontSize: "0.95rem" }}>
-                      Appointment with Dr. Emily Carter
+                      {t('homepage.appointmentWith', { doctor: 'Dr. Emily Carter' })}
                     </p>
                   </div>
                 </div>
                 <span className="badge text-secondary" style={{ background: "#f1f5f9" }}>
-                  July 15, 2024
+                  {upcomingAppointmentDate.toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}
                 </span>
               </div>
             </div>
@@ -132,26 +142,23 @@ export default function HomePage() {
                       background: "#f1f5f9",
                       width: "48px",
                       height: "48px"
-                    }}
-                  >
+                    }}>
                     <FolderOpen size={24} className="text-primary" />
                   </div>
                   <div>
-                    <h6 className="fw-bold mb-1" style={{ color: "#2d3748" }}>Recent Medical Records</h6>
+                    <h6 className="fw-bold mb-1" style={{ color: "#2d3748" }}>{t('homepage.recentMedicalRecords')}</h6>
                     <p className="text-secondary mb-0" style={{ fontSize: "0.95rem" }}>
-                      Checkup results from June 2024
+                      {t('homepage.checkupResults', { monthYear: recentRecordDate.toLocaleDateString(locale, { month: 'long', year: 'numeric' }) })}
                     </p>
                   </div>
                 </div>
-                <span className="badge text-secondary" style={{ background: "#f1f5f9" }}>
-                  June 20, 2024
-                </span>
               </div>
+              <span className="badge text-secondary" style={{ background: "#f1f5f9" }}>
+                {recentRecordDate.toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}
+              </span>
             </div>
           </div>
         </div>
-
-        {/* Add Documents Button */}
         <div className="text-end">
           <Link
             to="/addDocs"
@@ -163,7 +170,7 @@ export default function HomePage() {
             }}
           >
             <Upload size={18} className="me-2" />
-            Add Documents
+            {t('homepage.addDocuments')}
           </Link>
         </div>
       </div>

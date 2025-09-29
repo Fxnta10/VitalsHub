@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Store, MapPin, Phone, Mail } from "lucide-react";
 import axios from "axios";
+import { useTranslation } from 'react-i18next';
 
 const AllPharmacies = () => {
   const [pharmacies, setPharmacies] = useState([]);
@@ -9,6 +10,7 @@ const AllPharmacies = () => {
   const [error, setError] = useState(null);
   const [q, setQ] = useState("");
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
 
   useEffect(() => {
     const fetchPharmacies = async () => {
@@ -21,7 +23,7 @@ const AllPharmacies = () => {
         setPharmacies(response.data.data);
       } catch (error) {
         console.error("Error fetching pharmacies:", error);
-        setError("Failed to load pharmacies. Please try again later.");
+        setError(t('pharmacies.errors.loadFailed'));
       } finally {
         setIsLoading(false);
       }
@@ -44,7 +46,7 @@ const AllPharmacies = () => {
       setPharmacies(response.data.data);
     } catch (error) {
       console.error("Error searching pharmacies:", error);
-      setError("Failed to search pharmacies. Please try again.");
+      setError(t('pharmacies.errors.searchFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -54,7 +56,7 @@ const AllPharmacies = () => {
     return (
       <div className="min-vh-100 d-flex align-items-center justify-content-center">
         <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
+          <span className="visually-hidden">{t('loading')}</span>
         </div>
       </div>
     );
@@ -66,10 +68,10 @@ const AllPharmacies = () => {
         <div className="d-flex justify-content-between align-items-center mb-4">
           <div>
             <h2 className="fw-bold mb-2" style={{ color: "#2d3748" }}>
-              All Pharmacies
+              {t('pharmacies.title')}
             </h2>
             <p className="text-secondary" style={{ fontSize: "1.1rem" }}>
-              Find medicines at your nearest pharmacy
+              {t('pharmacies.subtitle')}
             </p>
           </div>
 
@@ -77,7 +79,7 @@ const AllPharmacies = () => {
             <div className="position-relative">
               <input
                 type="text"
-                placeholder="Search pharmacy..."
+                placeholder={t('pharmacies.searchPlaceholder')}
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 className="form-control"
@@ -103,7 +105,7 @@ const AllPharmacies = () => {
               className="btn btn-outline-primary"
               style={{ padding: "10px 20px", borderRadius: "8px" }}
             >
-              Search
+              {t('pharmacies.search')}
             </button>
           </form>
         </div>
@@ -134,23 +136,22 @@ const AllPharmacies = () => {
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow =
-                    "0 1px 3px rgba(0,0,0,0.05)";
+                  e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.05)";
                 }}
               >
                 <div className="d-flex align-items-center mb-3">
-                  <Store
-                    size={24}
-                    className="text-primary me-2"
-                    style={{ opacity: 0.8 }}
-                  />
-                  <h3
-                    className="h5 fw-bold mb-0"
-                    style={{ color: "#2d3748" }}
-                  >
-                    {pharmacy.name}
-                  </h3>
-                </div>
+                <Store
+                  size={24}
+                  className="text-primary me-2"
+                  style={{ opacity: 0.8 }}
+                />
+                <h3
+                  className="h5 fw-bold mb-0"
+                  style={{ color: "#2d3748" }}
+                >
+                  {i18n.language?.startsWith('hi') && pharmacy.name_hi ? pharmacy.name_hi : pharmacy.name}
+                </h3>
+              </div>
 
                 <div className="mb-3">
                   <div className="d-flex align-items-center mb-2">
@@ -194,7 +195,7 @@ const AllPharmacies = () => {
                     borderRadius: "6px",
                   }}
                 >
-                  View Medicines
+                  {t('pharmacies.viewMedicines')}
                 </button>
               </div>
             </div>

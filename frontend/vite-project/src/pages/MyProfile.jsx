@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/useAuthStore';
 import { Camera, Mail, User, Phone } from "lucide-react";
 import { Container, Card, Row, Col, Form, Image, Spinner, Button } from 'react-bootstrap';
+import { useTranslation } from 'react-i18next';
 
 export default function MyProfile() {
   const { authUser, isUpdatingProfile, updateProfile } = useAuthStore();
+  const { t } = useTranslation();
   const [selectedImg, setSelectedImg] = useState(null);
   const [profileData, setProfileData] = useState({
     fullName: authUser.fullName,
@@ -70,7 +72,7 @@ export default function MyProfile() {
         className="p-4 shadow-sm w-100 border-0" 
         style={{ maxWidth: '900px', borderRadius: '16px' }}
       >
-        <h3 className="mb-4 text-center fw-bold">My Profile</h3>
+        <h3 className="mb-4 text-center fw-bold">{t('profile.title')}</h3>
 
         {/* Profile Image */}
         <div className="d-flex justify-content-center position-relative mb-4">
@@ -114,7 +116,7 @@ export default function MyProfile() {
             <Col md={6}>
               <Form.Group className="mb-3">
                 <Form.Label className="fw-semibold">
-                  <User className="me-2" size={16} />Full Name
+                  <User className="me-2" size={16} />{t('profile.fullName')}
                 </Form.Label>
                 <Form.Control 
                   type="text" 
@@ -126,7 +128,7 @@ export default function MyProfile() {
               </Form.Group>
               <Form.Group>
                 <Form.Label className="fw-semibold">
-                  <Phone className="me-2" size={16} />Phone Number
+                  <Phone className="me-2" size={16} />{t('profile.phoneNumber')}
                 </Form.Label>
                 <Form.Control 
                   type="text" 
@@ -141,7 +143,7 @@ export default function MyProfile() {
             <Col md={6}>
               <Form.Group className="mb-3">
                 <Form.Label className="fw-semibold">
-                  <Mail className="me-2" size={16} />Email Address
+                  <Mail className="me-2" size={16} />{t('profile.email')}
                 </Form.Label>
                 <Form.Control 
                   type="email" 
@@ -152,7 +154,7 @@ export default function MyProfile() {
                 />
               </Form.Group>
               <Form.Group>
-                <Form.Label className="fw-semibold">Date of Birth</Form.Label>
+                <Form.Label className="fw-semibold">{t('profile.dateOfBirth')}</Form.Label>
                 <Form.Control 
                   type="date" 
                   name="dateOfBirth"
@@ -172,7 +174,7 @@ export default function MyProfile() {
               className="px-5 py-2 fw-semibold rounded shadow-sm"
               style={{ fontSize: "16px" }}
             >
-              {isUpdatingProfile ? <Spinner animation="border" size="sm" /> : "Save Changes"}
+              {isUpdatingProfile ? <Spinner animation="border" size="sm" /> : t('profile.saveChanges')}
             </Button>
           </div>
         </Form>

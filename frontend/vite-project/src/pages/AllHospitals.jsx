@@ -1,10 +1,12 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../stores/useAuthStore";
+import { useTranslation } from 'react-i18next';
 
 export default function AllHospitals() {
   const { getAllHospitals, allHospitals, isLoading } = useAuthStore();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   useEffect(() => {
     getAllHospitals();
@@ -34,13 +36,13 @@ export default function AllHospitals() {
                 role="status"
                 style={{ width: "3rem", height: "3rem" }}
               >
-                <span className="visually-hidden">Loading...</span>
+                <span className="visually-hidden">{t('loading')}</span>
               </div>
               <p
                 className="text-secondary"
                 style={{ fontSize: "1.1rem", fontWeight: "500" }}
               >
-                Loading hospitals...
+                {t('hospitals.loading')}
               </p>
             </div>
           </div>
@@ -62,17 +64,17 @@ export default function AllHospitals() {
                 🏥
               </div>
               <h2 className="fw-bold mb-3" style={{ color: "#2d3748" }}>
-                No Hospitals Found
+                {t('hospitals.emptyTitle')}
               </h2>
               <p className="text-secondary" style={{ fontSize: "1.1rem" }}>
-                There are currently no hospitals available in our network.
+                {t('hospitals.emptySubtitle')}
               </p>
               <button
                 onClick={() => window.location.reload()}
                 className="btn btn-primary mt-3"
                 style={{ borderRadius: "8px", padding: "12px 24px" }}
               >
-                Try Again
+                {t('hospitals.tryAgain')}
               </button>
             </div>
           </div>
@@ -87,11 +89,10 @@ export default function AllHospitals() {
         {/* Header Section */}
         <div className="mb-5">
           <h2 className="fw-bold mb-2" style={{ color: "#2d3748" }}>
-            Available Hospitals
+            {t('hospitals.headerTitle')}
           </h2>
           <p className="text-secondary mb-0" style={{ fontSize: "1.1rem" }}>
-            Choose a hospital below to view available doctors and book your
-            appointment.
+            {t('hospitals.headerSubtitle')}
           </p>
         </div>
 
@@ -128,7 +129,7 @@ export default function AllHospitals() {
                     className="mb-0 text-secondary"
                     style={{ fontSize: "0.9rem" }}
                   >
-                    Hospitals Available
+                    {t('hospitals.stats.hospitalsAvailable')}
                   </p>
                 </div>
               </div>
@@ -165,7 +166,7 @@ export default function AllHospitals() {
                     className="mb-0 text-secondary"
                     style={{ fontSize: "0.9rem" }}
                   >
-                    Emergency Care
+                    {t('hospitals.stats.emergencyCare')}
                   </p>
                 </div>
               </div>
@@ -202,7 +203,7 @@ export default function AllHospitals() {
                     className="mb-0 text-secondary"
                     style={{ fontSize: "0.9rem" }}
                   >
-                    Expert Doctors
+                    {t('hospitals.stats.expertDoctors')}
                   </p>
                 </div>
               </div>
@@ -213,7 +214,7 @@ export default function AllHospitals() {
         {/* Hospital Cards */}
         <div className="mb-5">
           <h5 className="fw-bold mb-3" style={{ color: "#2d3748" }}>
-            Hospital Network
+            {t('hospitals.networkTitle')}
           </h5>
           <div className="row g-4">
             {allHospitals.map((hospital) => (
@@ -285,19 +286,19 @@ export default function AllHospitals() {
                           className="badge text-primary"
                           style={{ background: "#f1f5f9", fontSize: "0.7rem" }}
                         >
-                          Emergency Care
+                          {t('hospitals.tags.emergencyCare')}
                         </span>
                         <span
                           className="badge text-primary"
                           style={{ background: "#f1f5f9", fontSize: "0.7rem" }}
                         >
-                          Surgery
+                          {t('hospitals.tags.surgery')}
                         </span>
                         <span
                           className="badge text-primary"
                           style={{ background: "#f1f5f9", fontSize: "0.7rem" }}
                         >
-                          Diagnostics
+                          {t('hospitals.tags.diagnostics')}
                         </span>
                       </div>
                     </div>
@@ -315,7 +316,7 @@ export default function AllHospitals() {
                       }}
                     >
                       <span className="me-2">👨‍⚕️</span>
-                      View Doctors
+                      {t('hospitals.actions.viewDoctors')}
                     </button>
                   </div>
 
@@ -338,14 +339,14 @@ export default function AllHospitals() {
                         className="text-success fw-bold"
                         style={{ fontSize: "0.8rem" }}
                       >
-                        Available Now
+                        {t('hospitals.availableNow')}
                       </small>
                     </div>
                     <small
                       className="text-secondary"
                       style={{ fontSize: "0.8rem" }}
                     >
-                      Quick Booking ⚡
+                      {t('hospitals.quickBooking')}
                     </small>
                   </div>
                 </div>
@@ -357,10 +358,7 @@ export default function AllHospitals() {
         {/* Summary */}
         <div className="text-center">
           <p className="text-secondary" style={{ fontSize: "1rem" }}>
-            Found{" "}
-            <span className="fw-bold text-primary">{allHospitals.length}</span>{" "}
-            hospital{allHospitals.length !== 1 ? "s" : ""} available for
-            appointments
+            {t('hospitals.summary', { count: allHospitals.length, plural: allHospitals.length !== 1 ? 's' : '' })}
           </p>
         </div>
       </div>

@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/useAuthStore';
 import { Mail, Lock } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 // Fixed InputField component outside
-const InputField = ({ icon: Icon, type, id, placeholder, value, onChange, autoComplete }) => (
+const InputField = ({ icon: Icon, type, id, label, placeholder, value, onChange, autoComplete }) => (
   <div className="mb-3">
-    <label htmlFor={id} className="form-label fw-semibold">{placeholder}</label>
+    <label htmlFor={id} className="form-label fw-semibold">{label}</label>
     <div className="d-flex align-items-center border rounded-pill px-3 py-2 shadow-sm">
       <Icon size={22} className="text-secondary me-3" />
       <input
@@ -31,6 +32,7 @@ export default function LoginPage() {
 
   const navigate = useNavigate();
   const { login, isLoggingIn } = useAuthStore();
+  const { t, i18n } = useTranslation();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -42,13 +44,14 @@ export default function LoginPage() {
     <div className="d-flex justify-content-center align-items-center min-vh-100" style={{ background: "#f6f8fb" }}>
       <div className="card shadow-lg border-0" style={{ maxWidth: "380px", width: "100%", borderRadius: "18px" }}>
         <div className="card-body p-4">
-          <h2 className="mb-4 text-center fw-bold" style={{ letterSpacing: "1px" }}>Login</h2>
+          <h2 className="mb-4 text-center fw-bold" style={{ letterSpacing: "1px" }}>{t('login.title')}</h2>
           <form onSubmit={handleSubmit}>
             <InputField
               icon={Mail}
               type="email"
               id="email"
-              placeholder="Email"
+              label={t('login.email')}
+              placeholder={t('login.email')}
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               autoComplete="username"
@@ -57,7 +60,8 @@ export default function LoginPage() {
               icon={Lock}
               type="password"
               id="password"
-              placeholder="Password"
+              label={t('login.password')}
+              placeholder={t('login.password')}
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               autoComplete="current-password"
@@ -69,12 +73,12 @@ export default function LoginPage() {
               disabled={isLoggingIn}
               style={{ transition: "background 0.2s" }}
             >
-              {isLoggingIn ? "Logging In..." : "Login"}
+              {isLoggingIn ? t('login.loggingIn') : t('login.login')}
             </button>
 
             <div className="mt-3 text-center">
               <p className="mb-0 text-secondary">
-                Don't have an account? <Link to="/signup" className="fw-bold text-primary text-decoration-none">Sign Up</Link>
+                {t('login.noAccount')} <Link to="/signup" className="fw-bold text-primary text-decoration-none">{t('login.signUp')}</Link>
               </p>
             </div>
           </form>

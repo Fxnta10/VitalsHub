@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../stores/adminAuthStore";
+import { useTranslation } from 'react-i18next';
 
 export default function AdminLoginPage() {
   const [hospitalID, setHospitalID] = useState("");
@@ -9,13 +10,14 @@ export default function AdminLoginPage() {
 
   const { login, isLoggingIn } = useAuthStore();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
 
     if (!hospitalID.trim() || !password.trim()) {
-      setError("Please fill in all fields");
+      setError(t('adminLogin.errors.fillAllFields'));
       return;
     }
 
@@ -29,11 +31,11 @@ export default function AdminLoginPage() {
         console.log("Login successful");
         navigate("/admin/dashboard");
       } else {
-        setError("Login failed. Please try again.");
+        setError(t('adminLogin.errors.loginFailed'));
       }
     } catch (err) {
       console.error("Login error:", err);
-      setError("An unexpected error occurred");
+      setError(t('adminLogin.errors.unexpected'));
     }
   };
 
@@ -52,13 +54,13 @@ export default function AdminLoginPage() {
               className="fw-bold mb-2"
               style={{ color: "#2d3748" }}
             >
-              Admin Login
+              {t('adminLogin.title')}
             </h2>
             <p
               className="text-secondary"
               style={{ fontSize: "0.95rem" }}
             >
-              Sign in to your hospital admin account
+              {t('adminLogin.subtitle')}
             </p>
           </div>
 
@@ -75,7 +77,7 @@ export default function AdminLoginPage() {
                 className="fw-bold mb-2"
                 style={{ color: "#2d3748" }}
               >
-                Hospital ID
+                {t('adminLogin.fields.hospitalId')}
               </label>
               <input
                 id="hospitalID"
@@ -83,7 +85,7 @@ export default function AdminLoginPage() {
                 type="text"
                 value={hospitalID}
                 onChange={(e) => setHospitalID(e.target.value)}
-                placeholder="Enter your hospital ID"
+                placeholder={t('adminLogin.fields.hospitalIdPlaceholder')}
                 className="form-control"
                 style={{ padding: "12px", borderRadius: "8px" }}
                 required
@@ -96,7 +98,7 @@ export default function AdminLoginPage() {
                 className="fw-bold mb-2"
                 style={{ color: "#2d3748" }}
               >
-                Password
+                {t('adminLogin.fields.password')}
               </label>
               <input
                 id="password"
@@ -104,7 +106,7 @@ export default function AdminLoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
+                placeholder={t('adminLogin.fields.passwordPlaceholder')}
                 className="form-control"
                 style={{ padding: "12px", borderRadius: "8px" }}
                 required
@@ -130,10 +132,10 @@ export default function AdminLoginPage() {
                     role="status"
                     aria-hidden="true"
                   ></span>
-                  Signing in...
+                  {t('adminLogin.buttons.signingIn')}
                 </>
               ) : (
-                "Sign in"
+                t('adminLogin.buttons.signIn')
               )}
             </button>
 
@@ -142,7 +144,7 @@ export default function AdminLoginPage() {
                 className="text-secondary mb-0"
                 style={{ fontSize: "0.95rem" }}
               >
-                Don't have an account?{" "}
+                {t('adminLogin.links.noAccount')} {" "}
                 <button
                   type="button"
                   onClick={() => navigate("/admin/register")}
@@ -152,7 +154,7 @@ export default function AdminLoginPage() {
                     textDecoration: "none",
                   }}
                 >
-                  Register here
+                  {t('adminLogin.links.registerHere')}
                 </button>
               </p>
             </div>

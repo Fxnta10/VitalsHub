@@ -18,6 +18,7 @@ import AdminRegisterPage from "./pages/admin/AdminRegisterPage";
 import AdminAllDoctorsPage from "./pages/admin/AdminAllDoctorsPage";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import AdminEditDoctor from "./pages/admin/AdminEditDoctor";
+import AdminAppointmentsPage from "./pages/admin/AdminAppointmentsPage";
 import AdminAddDoctorPage from "./pages/admin/AdminAddDoctorPage";
 import RagChatbot from "./pages/RagChatbot";
 import MedicalRecords from "./pages/MedicalRecords";
@@ -35,9 +36,11 @@ import PharmacyDashboard from "./pages/pharmaciesAdmin/PharmacyDashboard";
 import PharmacyAddMedicine from "./pages/pharmaciesAdmin/PharmacyAddMedicine";
 import PharmacyEditMed from "./pages/pharmaciesAdmin/PharmacyEditMed";
 import AllAppointments from "./pages/AllAppointments";
+import { useTranslation } from 'react-i18next';
 
 function App() {
   const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
+  const { t } = useTranslation();
 
   useEffect(() => {
     // Only check auth for non-admin routes
@@ -51,7 +54,7 @@ function App() {
     !authUser &&
     !window.location.pathname.startsWith("/admin")
   ) {
-    return <h1>Loading...</h1>;
+    return <h1>{t('loading')}</h1>;
   }
 
   return (
@@ -94,7 +97,7 @@ function App() {
           <Route path="doctors" element={<AdminAllDoctorsPage />} />
           <Route path="doctors/add" element={<AdminAddDoctorPage />} />
           <Route path="doctors/edit/:id" element={<AdminEditDoctor />} />
-          {/* <Route path="appointments" element={<AdminAppointments />} /> */}
+          <Route path="appointments" element={<AdminAppointmentsPage />} />
         </Route>
 
         <Route path="/pharmacy/login" element={<PharmacyLogin />} />
@@ -115,3 +118,4 @@ function App() {
 }
 
 export default App;
+

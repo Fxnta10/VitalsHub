@@ -1,14 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { Container, Row, Col, Card, Form, Button, ListGroup, Badge, Spinner } from 'react-bootstrap'
+import { useTranslation } from 'react-i18next'
 
 export default function RagChatbot() {
     const [text, setText] = useState("")
-    const [messages, setMessages] = useState([
-        { type: 'bot', content: "Hello! I'm your Health Assistant. I can help you find a doctor, check appointments, or answer health and medicine questions." }
-    ])
+    const [messages, setMessages] = useState([])
     const [isLoading, setIsLoading] = useState(false)
     // 1. STATE ADDITION: State to manage the session ID for the backend
     const [sessionId, setSessionId] = useState(null) 
+    const { t } = useTranslation()
     
     // Ref for auto-scrolling
     const messagesEndRef = useRef(null);
@@ -22,6 +22,14 @@ export default function RagChatbot() {
     useEffect(() => {
         console.log("Chatbot component mounted.")
     }, [])
+
+    // Initialize greeting message using current language
+    useEffect(() => {
+        if (messages.length === 0) {
+            setMessages([{ type: 'bot', content: t('chatbot.initialMessage') }])
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [t])
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -95,10 +103,10 @@ export default function RagChatbot() {
                             </Badge>
                         </div>
                         <div>
-                            <h3 className="mb-0">Ask me about your health queries</h3>
+                            <h3 className="mb-0">{t('chatbot.headerTitle')}</h3>
                         </div>
                         {/* Display Session ID for debugging */}
-                        <small className="ms-auto me-2 text-warning">Session ID: {sessionId ? sessionId.substring(0, 8) + '...' : 'New'}</small>
+                        <small className="ms-auto me-2 text-warning">{t('chatbot.sessionId')}: {sessionId ? sessionId.substring(0, 8) + '...' : 'New'}</small>
                     </div>
                 </Col>
             </Row>
@@ -154,7 +162,7 @@ export default function RagChatbot() {
                                             <Card.Body className="py-2 px-3">
                                                 <div className="d-flex align-items-center gap-2">
                                                     <Spinner animation="grow" size="sm" variant="primary" />
-                                                    <small className="text-muted">Thinking...</small>
+                                                    <small className="text-muted">{t('chatbot.thinking')}</small>
                                                 </div>
                                             </Card.Body>
                                         </Card>
@@ -178,7 +186,7 @@ export default function RagChatbot() {
                                     type="text"
                                     value={text}
                                     onChange={(e) => setText(e.target.value)}
-                                    placeholder="Ask me about hospital hours, doctors, or medicine..."
+                                    placeholder={t('chatbot.inputPlaceholder')}
                                     disabled={isLoading}
                                     onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSubmit(e)}
                                 />
@@ -193,11 +201,11 @@ export default function RagChatbot() {
                                     {isLoading ? (
                                         <>
                                             <Spinner animation="border" size="sm" />
-                                            Sending...
+                                            {t('chatbot.sending')}
                                         </>
                                     ) : (
                                         <>
-                                            📤 Send
+                                            📤 {t('chatbot.send')}
                                         </>
                                     )}
                                 </Button>

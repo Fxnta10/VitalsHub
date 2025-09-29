@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Trash2, Edit, Plus, Eye, UserCircle } from "lucide-react";
 import AdminNavbar from "../../components/AdminNavbar";
 import Navbar from "../../components/Navbar";
+import { useTranslation } from 'react-i18next';
 export default function AdminAllDoctorsPage() {
   const {
     authUser,
@@ -17,13 +18,14 @@ export default function AdminAllDoctorsPage() {
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   useEffect(() => {
     getAllDoctors();
   }, [getAllDoctors]);
 
   const handleDeleteDoctor = async (doctorId) => {
-    if (window.confirm("Are you sure you want to delete this doctor?")) {
+    if (window.confirm(t('adminDoctors.confirmDelete'))) {
       const result = await deleteDoctor({ doctorId });
       if (result.success) {
         getAllDoctors();
@@ -65,10 +67,10 @@ export default function AdminAllDoctorsPage() {
         <div className="d-flex justify-content-between align-items-center mb-4">
           <div>
             <h2 className="fw-bold mb-2" style={{ color: "#1e293b" }}>
-              All Doctors
+              {t('adminDoctors.list.title')}
             </h2>
             <p className="text-secondary" style={{ fontSize: "1.1rem" }}>
-              Hospital: {authUser?.hospitalId || "Unknown"}
+              {t('adminDoctors.list.hospital', { id: authUser?.hospitalId || t('adminDoctors.common.unknown') })}
             </p>
           </div>
           <button
@@ -81,7 +83,7 @@ export default function AdminAllDoctorsPage() {
             }}
           >
             <Plus className="me-2" size={18} />
-            Add New Doctor
+            {t('adminDoctors.list.addNewDoctor')}
           </button>
         </div>
 
@@ -96,10 +98,10 @@ export default function AdminAllDoctorsPage() {
           >
             <UserCircle size={64} className="text-secondary mb-3 opacity-75" />
             <h3 className="fw-bold mb-2" style={{ color: "#1e293b" }}>
-              No doctors found
+              {t('adminDoctors.empty.title')}
             </h3>
             <p className="text-secondary mb-4">
-              Get started by adding your first doctor.
+              {t('adminDoctors.empty.subtitle')}
             </p>
             <button
               onClick={handleAddNewDoctor}
@@ -107,7 +109,7 @@ export default function AdminAllDoctorsPage() {
               style={{ padding: "10px 24px", borderRadius: "8px" }}
             >
               <Plus className="me-2" size={18} />
-              Add Doctor
+              {t('adminDoctors.actions.addDoctor')}
             </button>
           </div>
         ) : (
@@ -161,17 +163,17 @@ export default function AdminAllDoctorsPage() {
                       className="mb-2 text-secondary"
                       style={{ fontSize: "0.95rem" }}
                     >
-                      <strong className="text-dark">Email:</strong> {doctor.email}
+                      <strong className="text-dark">{t('adminDoctors.common.email')}:</strong> {doctor.email}
                     </p>
                     <p
                       className="mb-2 text-secondary"
                       style={{ fontSize: "0.95rem" }}
                     >
-                      <strong className="text-dark">Shift:</strong> {doctor.shift?.start} -{" "}
+                      <strong className="text-dark">{t('adminDoctors.common.shift')}:</strong> {doctor.shift?.start} -{" "}
                       {doctor.shift?.end}
                     </p>
                     <p className="mb-2" style={{ fontSize: "0.95rem" }}>
-                      <strong className="text-dark">Status:</strong>{" "}
+                      <strong className="text-dark">{t('adminDoctors.common.status')}:</strong>{" "}
                       <span
                         className={`badge rounded-pill ${
                           doctor.isActive
@@ -179,7 +181,7 @@ export default function AdminAllDoctorsPage() {
                             : "bg-danger-subtle text-danger"
                         }`}
                       >
-                        {doctor.isActive ? "Active" : "Inactive"}
+                        {doctor.isActive ? t('adminDoctors.common.active') : t('adminDoctors.common.inactive')}
                       </span>
                     </p>
                   </div>
@@ -191,7 +193,7 @@ export default function AdminAllDoctorsPage() {
                       style={{ padding: "8px", borderRadius: "6px" }}
                     >
                       <Eye size={16} className="me-2" />
-                      View
+                      {t('adminDoctors.actions.view')}
                     </button>
                     <button
                       onClick={() => handleEditDoctor(doctor._id)}
@@ -199,7 +201,7 @@ export default function AdminAllDoctorsPage() {
                       style={{ padding: "8px", borderRadius: "6px" }}
                     >
                       <Edit size={16} className="me-2" />
-                      Edit
+                      {t('adminDoctors.actions.edit')}
                     </button>
                     <button
                       onClick={() => handleDeleteDoctor(doctor._id)}
@@ -208,7 +210,7 @@ export default function AdminAllDoctorsPage() {
                       style={{ padding: "8px", borderRadius: "6px" }}
                     >
                       <Trash2 size={16} className="me-2" />
-                      Delete
+                      {t('adminDoctors.actions.delete')}
                     </button>
                   </div>
                 </div>
@@ -231,7 +233,7 @@ export default function AdminAllDoctorsPage() {
               >
                 <div className="modal-header border-bottom-0 pb-0">
                   <h5 className="modal-title fw-bold" style={{ color: "#1e293b" }}>
-                    Doctor Details
+                    {t('adminDoctors.modal.title')}
                   </h5>
                   <button
                     type="button"
@@ -257,27 +259,27 @@ export default function AdminAllDoctorsPage() {
 
                   <div className="border-top pt-3">
                     <p className="mb-2">
-                      <strong>Email:</strong> {selectedDoctor.email}
+                      <strong>{t('adminDoctors.common.email')}:</strong> {selectedDoctor.email}
                     </p>
                     <p className="mb-2">
-                      <strong>Hospital ID:</strong> {selectedDoctor.hospitalId}
+                      <strong>{t('adminDoctors.common.hospitalId')}:</strong> {selectedDoctor.hospitalId}
                     </p>
                     <p className="mb-2">
-                      <strong>Shift:</strong> {selectedDoctor.shift?.start} -{" "}
+                      <strong>{t('adminDoctors.common.shift')}:</strong> {selectedDoctor.shift?.start} -{" "}
                       {selectedDoctor.shift?.end}
                     </p>
                     <p className="mb-2">
-                      <strong>Status:</strong>{" "}
+                      <strong>{t('adminDoctors.common.status')}:</strong>{" "}
                       <span
                         className={`badge ${
                           selectedDoctor.isActive ? "bg-success" : "bg-danger"
                         }`}
                       >
-                        {selectedDoctor.isActive ? "Active" : "Inactive"}
+                        {selectedDoctor.isActive ? t('adminDoctors.common.active') : t('adminDoctors.common.inactive')}
                       </span>
                     </p>
                     <p className="mb-2">
-                      <strong>Appointments:</strong>{" "}
+                      <strong>{t('adminDoctors.common.appointments')}:</strong>{" "}
                       {selectedDoctor.appointments?.length || 0}
                     </p>
                   </div>
@@ -288,14 +290,14 @@ export default function AdminAllDoctorsPage() {
                     className="btn btn-outline-primary flex-grow-1"
                     style={{ borderRadius: "6px" }}
                   >
-                    Edit Doctor
+                    {t('adminDoctors.modal.editDoctor')}
                   </button>
                   <button
                     onClick={() => setShowDetails(false)}
                     className="btn btn-outline-secondary flex-grow-1"
                     style={{ borderRadius: "6px" }}
                   >
-                    Close
+                    {t('adminDoctors.modal.close')}
                   </button>
                 </div>
               </div>

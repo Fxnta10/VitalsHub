@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useAuthStore } from "../../stores/adminAuthStore";
+import { useTranslation } from 'react-i18next';
 
 export default function AdminRegisterPage() {
   const [formData, setFormData] = useState({
@@ -14,19 +15,20 @@ export default function AdminRegisterPage() {
   const [error, setError] = useState("");
   const { signup, isSigningUp } = useAuthStore();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const validateForm = () => {
     const { hospitalId, email, password, address } = formData;
     if (!email || !password || !hospitalId || !address) {
-      setError("All fields are required");
+      setError(t('adminRegister.errors.required'));
       return false;
     }
     if (password.length < 6) {
-      setError("Password must be at least 6 characters long");
+      setError(t('adminRegister.errors.passwordLength'));
       return false;
     }
     if (!/\S+@\S+\.\S+/.test(email)) {
-      setError("Invalid email format");
+      setError(t('adminRegister.errors.invalidEmail'));
       return false;
     }
     return true;
@@ -45,14 +47,14 @@ export default function AdminRegisterPage() {
 
       if (result?.success) {
         console.log("Registration successful");
-        toast.success("Registration successful! Please login.");
+        toast.success(t('adminRegister.toasts.success'));
         navigate("/admin/login");
       } else {
-        setError("Registration failed. Please try again.");
+        setError(t('adminRegister.errors.failed'));
       }
     } catch (err) {
       console.error("Registration error:", err);
-      setError("An unexpected error occurred");
+      setError(t('adminRegister.errors.unexpected'));
     }
   };
 
@@ -71,10 +73,10 @@ export default function AdminRegisterPage() {
         <div className="bg-white rounded-3 shadow-sm p-4" style={{ border: "1px solid #e2e8f0" }}>
           <div className="text-center mb-4">
             <h2 className="fw-bold mb-2" style={{ color: "#2d3748" }}>
-              Admin Registration
+              {t('adminRegister.title')}
             </h2>
             <p className="text-secondary" style={{ fontSize: "0.95rem" }}>
-              Register your hospital admin account
+              {t('adminRegister.subtitle')}
             </p>
           </div>
 
@@ -87,7 +89,7 @@ export default function AdminRegisterPage() {
           <form onSubmit={handleRegister}>
             <div className="mb-3">
               <label htmlFor="hospitalId" className="fw-bold mb-2" style={{ color: "#2d3748" }}>
-                Hospital ID
+                {t('adminRegister.fields.hospitalId')}
               </label>
               <input
                 id="hospitalId"
@@ -95,7 +97,7 @@ export default function AdminRegisterPage() {
                 type="text"
                 value={formData.hospitalId}
                 onChange={handleInputChange("hospitalId")}
-                placeholder="Enter hospital ID"
+                placeholder={t('adminRegister.fields.hospitalIdPlaceholder')}
                 className="form-control"
                 style={{ padding: "12px", borderRadius: "8px" }}
                 required
@@ -104,7 +106,7 @@ export default function AdminRegisterPage() {
 
             <div className="mb-3">
               <label htmlFor="email" className="fw-bold mb-2" style={{ color: "#2d3748" }}>
-                Email Address
+                {t('adminRegister.fields.email')}
               </label>
               <input
                 id="email"
@@ -112,7 +114,7 @@ export default function AdminRegisterPage() {
                 type="email"
                 value={formData.email}
                 onChange={handleInputChange("email")}
-                placeholder="Enter email address"
+                placeholder={t('adminRegister.fields.emailPlaceholder')}
                 className="form-control"
                 style={{ padding: "12px", borderRadius: "8px" }}
                 required
@@ -121,14 +123,14 @@ export default function AdminRegisterPage() {
 
             <div className="mb-3">
               <label htmlFor="address" className="fw-bold mb-2" style={{ color: "#2d3748" }}>
-                Hospital Address
+                {t('adminRegister.fields.address')}
               </label>
               <textarea
                 id="address"
                 name="address"
                 value={formData.address}
                 onChange={handleInputChange("address")}
-                placeholder="Enter hospital address"
+                placeholder={t('adminRegister.fields.addressPlaceholder')}
                 rows="3"
                 className="form-control"
                 style={{ padding: "12px", borderRadius: "8px" }}
@@ -138,7 +140,7 @@ export default function AdminRegisterPage() {
 
             <div className="mb-4">
               <label htmlFor="password" className="fw-bold mb-2" style={{ color: "#2d3748" }}>
-                Password
+                {t('adminRegister.fields.password')}
               </label>
               <input
                 id="password"
@@ -146,7 +148,7 @@ export default function AdminRegisterPage() {
                 type="password"
                 value={formData.password}
                 onChange={handleInputChange("password")}
-                placeholder="Min. 6 characters"
+                placeholder={t('adminRegister.fields.passwordPlaceholder')}
                 className="form-control"
                 style={{ padding: "12px", borderRadius: "8px" }}
                 required
@@ -168,23 +170,23 @@ export default function AdminRegisterPage() {
               {isSigningUp ? (
                 <>
                   <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  Registering...
+                  {t('adminRegister.buttons.registering')}
                 </>
               ) : (
-                "Register"
+                t('adminRegister.buttons.register')
               )}
             </button>
 
             <div className="text-center">
               <p className="text-secondary mb-0" style={{ fontSize: "0.95rem" }}>
-                Already have an account?{" "}
+                {t('adminRegister.links.haveAccount')} {" "}
                 <button
                   type="button"
                   onClick={() => navigate("/admin/login")}
                   className="btn btn-link p-0 align-baseline"
                   style={{ color: "#4f46e5", textDecoration: "none" }}
                 >
-                  Login here
+                  {t('adminRegister.links.loginHere')}
                 </button>
               </p>
             </div>

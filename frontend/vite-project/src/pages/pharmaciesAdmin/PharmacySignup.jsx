@@ -3,10 +3,12 @@ import { useNavigate, Link } from "react-router-dom";
 import { usePharmacyStore } from "../../stores/pharmacyAuthStore";
 import { Store, Loader } from "lucide-react";
 import toast from "react-hot-toast";
+import { useTranslation } from 'react-i18next';
 
 export default function PharmacySignup() {
   const { signup, isSigningUp } = usePharmacyStore();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -33,10 +35,10 @@ export default function PharmacySignup() {
     e.preventDefault();
     const result = await signup(formData);
     if (result.success) {
-      toast.success("Pharmacy Registered Successfully");
+      toast.success(t('pharmacySignup.toasts.success'));
       navigate("/pharmacy/login");
     } else {
-      toast.error("Registration Failed");
+      toast.error(t('pharmacySignup.toasts.failed'));
     }
   };
 
@@ -57,13 +59,13 @@ export default function PharmacySignup() {
               className="fw-bold mb-2"
               style={{ color: "#2d3748" }}
             >
-              Register Your Pharmacy
+              {t('pharmacySignup.title')}
             </h2>
             <p
               className="text-secondary"
               style={{ fontSize: "1.1rem" }}
             >
-              Fill in the details to create your pharmacy account
+              {t('pharmacySignup.subtitle')}
             </p>
           </div>
 
@@ -74,7 +76,7 @@ export default function PharmacySignup() {
                 className="fw-bold mb-3"
                 style={{ color: "#2d3748" }}
               >
-                General Information
+                {t('pharmacySignup.sections.generalInfo')}
               </h5>
               <div className="row g-3">
                 <div className="col-md-6">
@@ -82,7 +84,7 @@ export default function PharmacySignup() {
                     className="fw-medium mb-2"
                     style={{ color: "#4a5568" }}
                   >
-                    Pharmacy Name
+                    {t('pharmacySignup.fields.name')}
                   </label>
                   <input
                     type="text"
@@ -102,7 +104,7 @@ export default function PharmacySignup() {
                     className="fw-medium mb-2"
                     style={{ color: "#4a5568" }}
                   >
-                    License Number
+                    {t('pharmacySignup.fields.licenseNumber')}
                   </label>
                   <input
                     type="text"
@@ -126,7 +128,7 @@ export default function PharmacySignup() {
                 className="fw-bold mb-3"
                 style={{ color: "#2d3748" }}
               >
-                Address Details
+                {t('pharmacySignup.sections.addressDetails')}
               </h5>
               <div className="row g-3">
                 <div className="col-12">
@@ -134,7 +136,7 @@ export default function PharmacySignup() {
                     className="fw-medium mb-2"
                     style={{ color: "#4a5568" }}
                   >
-                    Street Address
+                    {t('pharmacySignup.fields.address')}
                   </label>
                   <input
                     type="text"
@@ -154,7 +156,7 @@ export default function PharmacySignup() {
                     className="fw-medium mb-2"
                     style={{ color: "#4a5568" }}
                   >
-                    District
+                    {t('pharmacySignup.fields.district')}
                   </label>
                   <input
                     type="text"
@@ -174,7 +176,7 @@ export default function PharmacySignup() {
                     className="fw-medium mb-2"
                     style={{ color: "#4a5568" }}
                   >
-                    State
+                    {t('pharmacySignup.fields.state')}
                   </label>
                   <input
                     type="text"
@@ -194,7 +196,7 @@ export default function PharmacySignup() {
                     className="fw-medium mb-2"
                     style={{ color: "#4a5568" }}
                   >
-                    Pincode
+                    {t('pharmacySignup.fields.pincode')}
                   </label>
                   <input
                     type="text"
@@ -218,7 +220,7 @@ export default function PharmacySignup() {
                 className="fw-bold mb-3"
                 style={{ color: "#2d3748" }}
               >
-                Contact & Account Details
+                {t('pharmacySignup.sections.contactAccount')}
               </h5>
               <div className="row g-3">
                 <div className="col-md-6">
@@ -226,7 +228,7 @@ export default function PharmacySignup() {
                     className="fw-medium mb-2"
                     style={{ color: "#4a5568" }}
                   >
-                    Contact Number
+                    {t('pharmacySignup.fields.contactNumber')}
                   </label>
                   <input
                     type="tel"
@@ -246,7 +248,7 @@ export default function PharmacySignup() {
                     className="fw-medium mb-2"
                     style={{ color: "#4a5568" }}
                   >
-                    Email Address
+                    {t('pharmacySignup.fields.email')}
                   </label>
                   <input
                     type="email"
@@ -266,7 +268,7 @@ export default function PharmacySignup() {
                     className="fw-medium mb-2"
                     style={{ color: "#4a5568" }}
                   >
-                    Password
+                    {t('pharmacySignup.fields.password')}
                   </label>
                   <input
                     type="password"
@@ -286,7 +288,7 @@ export default function PharmacySignup() {
                     className="fw-medium mb-2"
                     style={{ color: "#4a5568" }}
                   >
-                    Working Hours
+                    {t('pharmacySignup.fields.workingTimings')}
                   </label>
                   <input
                     type="text"
@@ -298,7 +300,7 @@ export default function PharmacySignup() {
                       padding: "12px",
                       borderRadius: "8px",
                     }}
-                    placeholder="e.g. 9:00 AM - 9:00 PM"
+                    placeholder={t('pharmacySignup.fields.workingTimingsPlaceholder')}
                     required
                   />
                 </div>
@@ -311,7 +313,7 @@ export default function PharmacySignup() {
                 className="fw-bold mb-3"
                 style={{ color: "#2d3748" }}
               >
-                Pharmacist Details
+                {t('pharmacySignup.sections.pharmacistDetails')}
               </h5>
               <div className="row g-3">
                 <div className="col-md-6">
@@ -319,7 +321,7 @@ export default function PharmacySignup() {
                     className="fw-medium mb-2"
                     style={{ color: "#4a5568" }}
                   >
-                    Pharmacist Name
+                    {t('pharmacySignup.fields.pharmacistName')}
                   </label>
                   <input
                     type="text"
@@ -339,7 +341,7 @@ export default function PharmacySignup() {
                     className="fw-medium mb-2"
                     style={{ color: "#4a5568" }}
                   >
-                    Pharmacist ID
+                    {t('pharmacySignup.fields.pharmacistId')}
                   </label>
                   <input
                     type="text"
@@ -359,7 +361,7 @@ export default function PharmacySignup() {
                     className="fw-medium mb-2"
                     style={{ color: "#4a5568" }}
                   >
-                    Pharmacist Qualification
+                    {t('pharmacySignup.fields.pharmacistQualification')}
                   </label>
                   <input
                     type="text"
@@ -394,21 +396,21 @@ export default function PharmacySignup() {
                 {isSigningUp ? (
                   <>
                     <Loader size={20} className="me-2 animate-spin" />
-                    Creating Account...
+                    {t('pharmacySignup.buttons.creating')}
                   </>
                 ) : (
-                  "Create Account"
+                  t('pharmacySignup.buttons.create')
                 )}
               </button>
 
               <p className="text-center mt-4 mb-0">
-                Already have an account?{" "}
+                {t('pharmacySignup.links.haveAccount')} {" "}
                 <Link
                   to="/pharmacy/login"
                   className="text-decoration-none"
                   style={{ color: "#4f46e5" }}
                 >
-                  Sign in
+                  {t('pharmacySignup.links.signIn')}
                 </Link>
               </p>
             </div>
