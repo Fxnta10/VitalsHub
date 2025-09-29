@@ -25,10 +25,10 @@ export default function AllAppointments() {
 
   return (
     <Container className="mt-4">
-      <h2 className="mb-4 text-center">{t('appointments.title')}</h2>
+      <h2 className="mb-4 text-center">{t("appointments.title")}</h2>
       {(!appointments || appointments.length === 0) && (
         <p className="text-center text-secondary mb-0">
-          {t('appointments.empty', { defaultValue: 'No appointments found.' })}
+          {t("appointments.empty", { defaultValue: "No appointments found." })}
         </p>
       )}
       <Row>
@@ -38,21 +38,25 @@ export default function AllAppointments() {
               <Card.Body>
                 <Card.Title className="text-primary">
                   {(() => {
-                    const lang = (i18n.language || '').split('-')[0];
+                    const lang = (i18n.language || "").split("-")[0];
                     const localizedKey = `name_${lang}`;
                     const doc = appointment.doctorId || {};
-                    return doc[localizedKey] || doc.name || '';
+                    return doc[localizedKey] || doc.name || "";
                   })()}
                 </Card.Title>
                 <Card.Subtitle className="mb-2 text-muted">
-                  {t(`specialisations.${appointment.doctorId.specialisation}` , { defaultValue: appointment.doctorId.specialisation })}
+                  {t(`specialisations.${appointment.doctorId.specialisation}`, {
+                    defaultValue: appointment.doctorId.specialisation,
+                  })}
                 </Card.Subtitle>
                 <Card.Text>
-                  <strong>{t('appointments.timeLabel')}</strong>{" "}
-                  {new Date(appointment.appointmentTime).toLocaleString(i18n.language)}
+                  <strong>{t("appointments.timeLabel")}</strong>{" "}
+                  {new Date(appointment.appointmentTime).toLocaleString(
+                    i18n.language
+                  )}
                 </Card.Text>
                 <Card.Text>
-                  <strong>{t('appointments.statusLabel')}</strong>{" "}
+                  <strong>{t("appointments.statusLabel")}</strong>{" "}
                   <span
                     className={
                       appointment.status === "Confirmed"
@@ -62,8 +66,12 @@ export default function AllAppointments() {
                         : "text-danger"
                     }
                   >
-                    {t(`appointments.status.${appointment.status}`)}
+                    {appointment.status}
                   </span>
+                </Card.Text>
+                <Card.Text>
+                  <strong>Description:</strong>{" "}
+                  {appointment.description || "No description provided"}
                 </Card.Text>
               </Card.Body>
             </Card>

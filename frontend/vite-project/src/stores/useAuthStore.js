@@ -51,7 +51,9 @@ export const useAuthStore = create((set) => ({
       return { success: true };
     } catch (error) {
       console.log("Error in login", error.message);
-      // toast.error(error.response.data.message);
+      console.log("Login data sent:", data);
+      console.log("Backend response:", error.response?.data);
+      toast.error(error.response?.data?.message || "Login failed");
     } finally {
       set({ isLoggingIn: false });
     }
@@ -105,13 +107,35 @@ export const useAuthStore = create((set) => ({
       const { authUser, sendSms } = useAuthStore.getState();
 
       if (authUser?.phoneNumber) {
+        // Generate random Zoom meeting ID (9 digits with dashes)
+        const generateZoomId = () => {
+          const part1 = Math.floor(Math.random() * 900) + 100; // 3 digits
+          const part2 = Math.floor(Math.random() * 900) + 100; // 3 digits
+          const part3 = Math.floor(Math.random() * 900) + 100; // 3 digits
+          return `${part1}-${part2}-${part3}`;
+        };
+
+        const zoomId = generateZoomId();
+        const zoomPassword = "VH2024"; // Static password
+
         await sendSms({
           phone: `+91${authUser.phoneNumber}`,
-          message: `Appointment Successfully booked at ${data.appointmentTime} 
-          Description: ${data.description}
-          Patient Name : ${authUser.fullName}
-          `,
+          message: `🏥 APPOINTMENT CONFIRMED - VitalsHub
 
+✅ Your appointment has been successfully booked!
+
+  Patient: ${authUser.fullName}
+  Doctor: ${data.doctorName || "Dr. [Name]"}
+  Date & Time: ${data.appointmentTime}
+  Appointment Description: ${data.description}
+
+🎥 TELEHEALTH DETAILS:
+Zoom Meeting ID: ${zoomId}
+Password: ${zoomPassword}
+
+📞 For any queries, contact our support team.
+
+Thank you for choosing VitalsHub! `,
         });
       }
 
